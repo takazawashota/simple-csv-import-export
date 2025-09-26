@@ -14,14 +14,14 @@ WordPressの投稿、固定ページ、カスタム投稿タイプを CSV ファ
 
 ## インストール方法
 
-### 方法1: ZIPファイルを使用してインストール
+### 方法1：ZIPファイルを使用してインストール
 
 1. このリポジトリの最新版をZIPファイルでダウンロード
 2. WordPress管理画面の「プラグイン」>「新規追加」>「プラグインのアップロード」を選択
 3. ダウンロードしたZIPファイルを選択してアップロード
 4. プラグインを有効化
 
-### 方法2: 手動でインストール
+### 方法2：手動でインストール
 
 1. このリポジトリをクローンまたはダウンロード
 2. `simple-csv-import-export` フォルダをWordPressの `/wp-content/plugins/` ディレクトリにアップロード
@@ -37,15 +37,16 @@ GPLv2 or later
 
 ## プラグイン作者
 
+- [高澤翔汰（takazawashota）](https://github.com/takazawashota)
+
 開発者の運営サイトは以下になります。
 
-- [Shota Takazawa](https://github.com/takazawashota)
-- [Website](https://sokulabo.com)
-- [Website](https://ume-noki.com)
+- [速ラボ](https://sokulabo.com)
+- [UMENOKI](https://ume-noki.com)
 
 開発者の詳細情報は以下になります。
 
-- [Website](https://ume-noki.com/operator/)
+- [高澤翔汰 プロフィール](https://ume-noki.com/operator/)
 
 ## 貢献方法
 
