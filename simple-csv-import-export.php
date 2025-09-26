@@ -21,7 +21,7 @@ add_action('admin_init', 'scv_add_importer');
 function scv_add_importer() {
     register_importer(
         'csv-import-export',
-        'CSV Import/Export',
+        'Simple CSV Import/Export',
         'CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート/エクスポートできます。',
         'scv_admin_page'
     );
@@ -43,92 +43,77 @@ function scv_admin_init() {
     if (isset($_POST['download_sample_csv'])) {
         scv_download_sample_csv();
     }
+    
+    // CSVテスト処理
+    if (isset($_POST['test_csv']) && !empty($_FILES['test_csv_file']['name'])) {
+        scv_process_csv_test();
+    }
 }
 
 // 管理画面のページ
 function scv_admin_page() {
-    // ヘルプタブを追加
-    $screen = get_current_screen();
-    
-    $screen->add_help_tab(array(
-        'id'      => 'csv-import-overview',
-        'title'   => '概要',
-        'content' => '
-            <p><strong>CSV Import/Export プラグインについて</strong></p>
-            <p>このツールを使用すると、CSVファイル形式でWordPressの投稿、固定ページ、カスタム投稿タイプを一括でインポート・エクスポートできます。</p>
-            <ul>
-                <li>大量のコンテンツを効率的に管理</li>
-                <li>他のシステムからの移行</li>
-                <li>バックアップとしてのデータエクスポート</li>
-                <li>カスタムフィールドとタクソノミーの一括設定</li>
-            </ul>
-        '
-    ));
-    
-    $screen->add_help_tab(array(
-        'id'      => 'csv-format-help',
-        'title'   => 'CSVフォーマット',
-        'content' => '
-            <p><strong>CSVファイルの形式について</strong></p>
-            <p>CSVファイルは以下の要件を満たす必要があります：</p>
-            <ul>
-                <li>UTF-8エンコーディングで保存</li>
-                <li>1行目はヘッダー行（列名）</li>
-                <li>必須項目：post_title（記事タイトル）</li>
-                <li>カンマ区切り形式</li>
-            </ul>
-            <p>サンプルCSVファイルをダウンロードして、正確な形式を確認することをお勧めします。</p>
-        '
-    ));
-    
-    $screen->add_help_tab(array(
-        'id'      => 'csv-troubleshooting',
-        'title'   => 'トラブルシューティング',
-        'content' => '
-            <p><strong>よくある問題と解決方法</strong></p>
-            <ul>
-                <li><strong>文字化け：</strong> CSVファイルがUTF-8で保存されているか確認してください</li>
-                <li><strong>メモリエラー：</strong> 大きなファイルは分割してインポートしてください</li>
-                <li><strong>画像が表示されない：</strong> 画像URLが有効で、アクセス可能か確認してください</li>
-                <li><strong>カテゴリが作成されない：</strong> カテゴリスラッグが適切な形式か確認してください</li>
-            </ul>
-        '
-    ));
-    
-    $screen->set_help_sidebar('
-        <p><strong>関連リンク:</strong></p>
-        <p><a href="https://wordpress.org/support/article/importing-content/" target="_blank">WordPress公式：コンテンツのインポート</a></p>
-        <p><a href="' . admin_url('import.php') . '">他のインポートツール</a></p>
-    ');
     
     ?>
     <div class="wrap">
-        <h1>CSV Import/Export</h1>
+        <h1>Simple CSV Import/Export</h1>
         <p>CSVファイルを使用して、WordPressの投稿、固定ページ、カスタム投稿タイプを一括でインポート・エクスポートできます。</p>
         
         <!-- CSS スタイル -->
         <style>
-            .scv-section {
-                background: #fff;
-                border: 1px solid #c3c4c7;
-                border-radius: 4px;
-                margin-bottom: 20px;
-                box-shadow: 0 1px 1px rgba(0,0,0,.04);
-            }
-            .scv-section-header {
-                background: #f6f7f7;
-                border-bottom: 1px solid #c3c4c7;
-                padding: 12px 16px;
-                border-radius: 4px 4px 0 0;
-            }
-            .scv-section-header h2 {
+            /* WordPressスタイルのタブナビゲーション */
+            .nav-tab-wrapper {
+                border-bottom: none;
                 margin: 0;
-                font-size: 15px;
-                color: #1d2327;
+                padding-top: 9px;
+                padding-bottom: 0;
+                line-height: inherit;
             }
-            .scv-section-content {
-                padding: 16px;
+            .nav-tab-wrapper:after {
+                clear: both;
+                content: "";
+                display: table;
             }
+            .nav-tab {
+                background: #f1f1f1;
+                border: none;
+                color: #646970;
+                display: inline-block;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1;
+                margin: 0 5px -1px 0;
+                padding: 8px 12px;
+                text-decoration: none;
+                white-space: nowrap;
+                outline: none;
+                box-shadow: none;
+            }
+            .nav-tab:focus {
+                outline: none;
+                box-shadow: none;
+            }
+            .nav-tab:hover {
+                background-color: #fff;
+                color: #646970;
+            }
+            .nav-tab-active,
+            .nav-tab-active:hover {
+                background: #fff!important;
+                border-bottom: 1px solid #fff;
+                color: #000;
+            }
+            
+            /* タブコンテンツ */
+            .scv-tab-content {
+                display: none;
+                background: #fff;
+                padding: 20px;
+            }
+            .scv-tab-content.active {
+                display: block;
+            }
+            
+            /* 既存スタイル */
             .scv-form-group {
                 margin-bottom: 15px;
             }
@@ -177,16 +162,17 @@ function scv_admin_page() {
             }
         </style>
 
-        <!-- CSVインポートセクション -->
-        <div class="scv-section">
-            <div class="scv-section-header">
-                <h2>CSVファイルのインポート</h2>
-            </div>
-            <div class="scv-section-content">
-                <div class="scv-notice">
-                    <strong>注意:</strong> CSVファイルは UTF-8 エンコーディングで保存してください。処理速度はデータ量、サーバー環境、データの複雑さに応じて自動調整されます。
-                </div>
-                
+        <!-- タブナビゲーション -->
+        <div class="nav-tab-wrapper">
+            <a href="#tab-import" class="nav-tab nav-tab-active scv-tab-link" data-tab="import">インポート</a>
+            <a href="#tab-export" class="nav-tab scv-tab-link" data-tab="export">エクスポート</a>
+            <a href="#tab-format" class="nav-tab scv-tab-link" data-tab="format">CSVフォーマット仕様</a>
+            <a href="#tab-test" class="nav-tab scv-tab-link" data-tab="test">CSVテスト</a>
+            <a href="#tab-manual" class="nav-tab scv-tab-link" data-tab="manual">マニュアル</a>
+        </div>
+
+        <!-- CSVインポートタブ -->
+        <div id="tab-import" class="scv-tab-content active">
                 <form method="post" enctype="multipart/form-data">
                     <?php wp_nonce_field('csv_import_action', 'csv_import_nonce'); ?>
                     
@@ -209,23 +195,12 @@ function scv_admin_page() {
                         </label>
                     </div>
                     
-                    <div class="scv-form-group">
-                        <p style="font-size: 12px; color: #666; margin: 0; padding: 8px; background: #f0f0f1; border-left: 3px solid #00a0d2; border-radius: 3px;">
-                            <strong>自動バッチ処理:</strong> データ量とサーバー環境に応じて、処理速度を自動調整します。
-                        </p>
-                    </div>
-                    
                     <button type="submit" name="import_csv" class="button button-primary">CSVをインポート</button>
                 </form>
-            </div>
         </div>
 
-        <!-- CSVエクスポートセクション -->
-        <div class="scv-section">
-            <div class="scv-section-header">
-                <h2>CSVファイルのエクスポート</h2>
-            </div>
-            <div class="scv-section-content">
+        <!-- CSVエクスポートタブ -->
+        <div id="tab-export" class="scv-tab-content">
                 <form method="post">
                     <?php wp_nonce_field('csv_export_action', 'csv_export_nonce'); ?>
                     
@@ -254,23 +229,62 @@ function scv_admin_page() {
                         </select>
                     </div>
                     
-                    <div class="scv-form-group">
-                        <p style="font-size: 12px; color: #666; margin: 0; padding: 8px; background: #f0f0f1; border-left: 3px solid #00a0d2; border-radius: 3px;">
-                            <strong>自動制限:</strong> サーバー環境とデータ量に応じて、適切なエクスポート件数を自動設定します。
-                        </p>
-                    </div>
-                    
                     <button type="submit" name="export_csv" class="button button-secondary">CSVをエクスポート</button>
                 </form>
-            </div>
         </div>
 
-        <!-- CSVフォーマット説明 -->
-        <div class="scv-section">
-            <div class="scv-section-header">
-                <h2>CSVフォーマット仕様</h2>
+        <!-- CSVテストタブ -->
+        <div id="tab-test" class="scv-tab-content">
+            <h3>CSVファイルテスト・プレビュー</h3>
+            <p>CSVファイルをアップロードして、内容の確認とファイル形式の検証を行います。</p>
+            
+            <form method="post" enctype="multipart/form-data" id="csv-test-form">
+                <?php wp_nonce_field('csv_test_action', 'csv_test_nonce'); ?>
+                
+                <div class="scv-form-group">
+                    <label for="test_csv_file" class="scv-form-label">テスト用CSVファイル:</label>
+                    <input type="file" name="test_csv_file" id="test_csv_file" accept=".csv" required>
+                    <p class="description">アップロードしたCSVファイルの内容とエンコーディングを確認できます。</p>
+                </div>
+                
+                <div class="scv-form-group">
+                    <label>
+                        <input type="checkbox" name="detailed_check" value="1" checked>
+                        詳細チェックを実行（データの妥当性検証を含む）
+                    </label>
+                </div>
+                
+                <div class="scv-form-group">
+                    <label>
+                        <input type="checkbox" name="validate_urls" value="1">
+                        画像URLの有効性をチェック（時間がかかる場合があります）
+                    </label>
+                </div>
+                
+                <button type="submit" name="test_csv" class="button button-primary">
+                    CSVファイルをテスト・プレビュー
+                </button>
+            </form>
+            
+            <div id="csv-test-results" style="margin-top: 20px;">
+                <?php
+                // CSVテストの詳細結果を表示
+                global $scv_test_results;
+                if (!empty($scv_test_results)) {
+                    scv_display_csv_test_details(
+                        $scv_test_results['file_analysis'],
+                        $scv_test_results['headers'],
+                        $scv_test_results['csv_data'],
+                        $scv_test_results['validation_results'],
+                        $scv_test_results['detailed_check']
+                    );
+                }
+                ?>
             </div>
-            <div class="scv-section-content">
+        </div>
+        
+        <!-- CSVフォーマット仕様タブ -->
+        <div id="tab-format" class="scv-tab-content">
                 <p>以下のフォーマットでCSVファイルを作成してください。1行目はヘッダー行として、各列名を記述してください。</p>
                 
                 <table class="scv-format-table">
@@ -370,7 +384,6 @@ function scv_admin_page() {
                     <form method="post" style="margin: 0;">
                         <?php wp_nonce_field('sample_csv_download', 'sample_csv_nonce'); ?>
                         <button type="submit" name="download_sample_csv" class="button button-secondary" style="font-size: 12px; height: 28px; padding: 0 12px; display: flex; align-items: center; gap: 5px;">
-                            <span class="dashicons dashicons-download"></span>
                             サンプルCSVをダウンロード
                         </button>
                     </form>
@@ -379,8 +392,113 @@ function scv_admin_page() {
                 <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; overflow-x: auto; font-size: 11px;">post_id,post_title,post_content,post_status,post_type,post_category,post_tags
 ,サンプル記事1,"&lt;p&gt;これは最初の記事です。&lt;/p&gt;",publish,post,sample-category,tag1
 ,サンプル記事2,"&lt;p&gt;これは2番目の記事です。&lt;/p&gt;",draft,post,"category1,category2","tag1,tag2"</pre>
-            </div>
         </div>
+
+        <!-- マニュアルタブ -->
+        <div id="tab-manual" class="scv-tab-content">
+            <h3>Simple CSV Import/Export プラグイン マニュアル</h3>
+            
+            <div class="scv-notice">
+                <strong>重要:</strong> このプラグインを使用する前に、以下の注意事項をお読みください。
+            </div>
+            
+            <h4>1. CSVファイルの準備について</h4>
+            <ul>
+                <li><strong>エンコーディング:</strong> CSVファイルは必ず UTF-8 エンコーディングで保存してください</li>
+                <li><strong>ファイル形式:</strong> カンマ区切り（.csv）形式で保存してください</li>
+                <li><strong>ヘッダー行:</strong> 1行目には必ず列名（フィールド名）を記述してください</li>
+                <li><strong>文字エスケープ:</strong> データにカンマや改行が含まれる場合は、ダブルクォート（"）で囲んでください</li>
+            </ul>
+            
+            <h4>2. インポート処理について</h4>
+            <div class="scv-notice scv-success">
+                <strong>自動バッチ処理:</strong> データ量とサーバー環境に応じて、処理速度を自動調整します。大量データも安全に処理できます。
+            </div>
+            <ul>
+                <li><strong>必須フィールド:</strong> post_title（記事タイトル）は必須です</li>
+                <li><strong>更新機能:</strong> post_idが指定されている場合、既存の投稿を更新できます</li>
+                <li><strong>エラー処理:</strong> エラーが発生した行をスキップして続行できます</li>
+                <li><strong>処理速度:</strong> データ量、サーバー環境、データの複雑さに応じて自動調整されます</li>
+            </ul>
+            
+            <h4>3. エクスポート処理について</h4>
+            <div class="scv-notice scv-success">
+                <strong>自動制限:</strong> サーバー環境とデータ量に応じて、適切なエクスポート件数を自動設定します。
+            </div>
+            <ul>
+                <li><strong>投稿タイプ選択:</strong> 投稿、固定ページ、カスタム投稿タイプから選択可能</li>
+                <li><strong>ステータス選択:</strong> 公開済み、下書き、非公開などの投稿ステータスから選択可能</li>
+                <li><strong>全データ対応:</strong> カスタムフィールドやタクソノミーも含めてエクスポート可能</li>
+            </ul>
+            
+            <h4>4. トラブルシューティング</h4>
+            <ul>
+                <li><strong>文字化けが発生する場合:</strong> CSVファイルがUTF-8エンコーディングで保存されているか確認してください</li>
+                <li><strong>メモリエラーが発生する場合:</strong> 大きなファイルは分割してインポートしてください</li>
+                <li><strong>画像が表示されない場合:</strong> 画像URLが有効で、アクセス可能か確認してください</li>
+                <li><strong>カテゴリが作成されない場合:</strong> カテゴリスラッグが適切な形式か確認してください</li>
+                <li><strong>処理が途中で止まる場合:</strong> サーバーのタイムアウト設定を確認し、データを分割して処理してください</li>
+            </ul>
+            
+            <h4>5. セキュリティについて</h4>
+            <ul>
+                <li><strong>権限確認:</strong> 管理者権限を持つユーザーのみが使用できます</li>
+                <li><strong>ファイル検証:</strong> アップロードされるファイルは厳格に検証されます</li>
+                <li><strong>データバリデーション:</strong> インポート前にデータの妥当性をチェックします</li>
+            </ul>
+            
+            <h4>6. パフォーマンス最適化</h4>
+            <ul>
+                <li><strong>バッチ処理:</strong> データ量に応じて自動的にバッチサイズを調整</li>
+                <li><strong>メモリ管理:</strong> 大容量ファイルでもメモリ効率よく処理</li>
+                <li><strong>進行状況表示:</strong> 長時間の処理でも進行状況を確認可能</li>
+            </ul>
+        </div>
+        
+        <!-- JavaScript for Tab Functionality -->
+        <script>
+        jQuery(document).ready(function($) {
+            // タブクリック処理
+            $('.scv-tab-link').on('click', function(e) {
+                e.preventDefault();
+                
+                var targetTab = $(this).data('tab');
+                
+                // すべてのタブとコンテンツからactiveクラスを削除
+                $('.scv-tab-link').removeClass('nav-tab-active');
+                $('.scv-tab-content').removeClass('active');
+                
+                // クリックされたタブとそのコンテンツにactiveクラスを追加
+                $(this).addClass('nav-tab-active');
+                $('#tab-' + targetTab).addClass('active');
+                
+                // URLハッシュを更新（任意）
+                if (history.pushState) {
+                    history.pushState(null, null, '#tab-' + targetTab);
+                }
+            });
+            
+            // ページ読み込み時にURLハッシュからタブを判定
+            function initTabFromHash() {
+                var hash = window.location.hash;
+                if (hash && hash.match(/^#tab-(import|export|format|test|manual)$/)) {
+                    var tabName = hash.replace('#tab-', '');
+                    $('.scv-tab-link').removeClass('nav-tab-active');
+                    $('.scv-tab-content').removeClass('active');
+                    $('.scv-tab-link[data-tab="' + tabName + '"]').addClass('nav-tab-active');
+                    $('#tab-' + tabName).addClass('active');
+                }
+            }
+            
+            // 初期化
+            initTabFromHash();
+            
+            // ブラウザの戻る/進むボタン対応
+            $(window).on('popstate', function() {
+                initTabFromHash();
+            });
+        });
+        </script>
     </div>
     <?php
 }
@@ -1253,3 +1371,536 @@ function scv_download_sample_csv() {
     exit;
 }
 
+// CSVテスト処理
+function scv_process_csv_test() {
+    // nonce チェック
+    if (!wp_verify_nonce($_POST['csv_test_nonce'], 'csv_test_action')) {
+        wp_die('セキュリティチェックに失敗しました。');
+    }
+    
+    // 権限チェック
+    if (!current_user_can('manage_options')) {
+        wp_die('権限がありません。');
+    }
+    
+    $uploaded_file = $_FILES['test_csv_file'];
+    $detailed_check = isset($_POST['detailed_check']);
+    $validate_urls = isset($_POST['validate_urls']);
+    
+    // ファイルのバリデーション
+    if ($uploaded_file['error'] !== UPLOAD_ERR_OK) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>ファイルのアップロードに失敗しました。</p></div>';
+        });
+        return;
+    }
+    
+    // ファイルタイプチェック
+    $file_info = pathinfo($uploaded_file['name']);
+    if (strtolower($file_info['extension']) !== 'csv') {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>CSVファイルのみアップロード可能です。</p></div>';
+        });
+        return;
+    }
+    
+    // ファイル情報を取得
+    $file_analysis = scv_analyze_csv_file($uploaded_file['tmp_name']);
+    
+    if ($file_analysis === false) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>CSVファイルの解析に失敗しました。</p></div>';
+        });
+        return;
+    }
+    
+    // CSVファイルの読み込み
+    $csv_data = scv_read_csv_file($uploaded_file['tmp_name']);
+    if ($csv_data === false) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>CSVファイルの読み込みに失敗しました。UTF-8エンコーディングで保存されていることを確認してください。</p></div>';
+        });
+        return;
+    }
+    
+    if (empty($csv_data)) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-warning"><p>CSVファイルが空です。</p></div>';
+        });
+        return;
+    }
+    
+    // ヘッダー行を取得
+    $headers = array_shift($csv_data);
+    $headers = array_map('trim', $headers);
+    
+    // データ検証
+    $validation_results = array();
+    if ($detailed_check) {
+        $validation_results = scv_validate_csv_data($csv_data, $headers, $validate_urls);
+    }
+    
+    // 上部に成功/警告メッセージを表示
+    add_action('admin_notices', function() use ($file_analysis, $validation_results, $detailed_check) {
+        scv_display_csv_test_summary($file_analysis, $validation_results, $detailed_check);
+    });
+    
+    // 詳細結果をグローバル変数に保存（後で下部に表示するため）
+    global $scv_test_results;
+    $scv_test_results = array(
+        'file_analysis' => $file_analysis,
+        'headers' => $headers,
+        'csv_data' => $csv_data,
+        'validation_results' => $validation_results,
+        'detailed_check' => $detailed_check
+    );
+}
+
+// CSVファイルを解析する関数
+function scv_analyze_csv_file($file_path) {
+    if (!file_exists($file_path)) {
+        return false;
+    }
+    
+    $file_size = filesize($file_path);
+    $content = file_get_contents($file_path);
+    
+    if ($content === false) {
+        return false;
+    }
+    
+    // エンコーディングを検出
+    $encoding = 'Unknown';
+    $encodings = array('UTF-8', 'UTF-16', 'UTF-32', 'SJIS-win', 'EUC-JP', 'JIS', 'ASCII', 'ISO-8859-1');
+    
+    foreach ($encodings as $enc) {
+        if (mb_check_encoding($content, $enc)) {
+            $encoding = $enc;
+            break;
+        }
+    }
+    
+    // BOMの検出
+    $has_bom = false;
+    if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+        $has_bom = true;
+    }
+    
+    // 改行コードの検出
+    $line_ending = 'Unknown';
+    if (strpos($content, "\r\n") !== false) {
+        $line_ending = 'CRLF (Windows)';
+    } elseif (strpos($content, "\n") !== false) {
+        $line_ending = 'LF (Unix/Linux/Mac)';
+    } elseif (strpos($content, "\r") !== false) {
+        $line_ending = 'CR (Classic Mac)';
+    }
+    
+    // 行数をカウント
+    $lines = preg_split('/\r\n|\r|\n/', $content);
+    $total_lines = count($lines);
+    if (end($lines) === '') {
+        $total_lines--;
+    }
+    
+    // ファイル形式の推定
+    $delimiter = ',';
+    if (strpos($content, ';') > strpos($content, ',') && strpos($content, ';') !== false) {
+        $delimiter = ';';
+    } elseif (strpos($content, "\t") > strpos($content, ',') && strpos($content, "\t") !== false) {
+        $delimiter = "\t";
+    }
+    
+    return array(
+        'file_size' => $file_size,
+        'encoding' => $encoding,
+        'has_bom' => $has_bom,
+        'line_ending' => $line_ending,
+        'total_lines' => $total_lines,
+        'delimiter' => $delimiter,
+        'content_preview' => substr($content, 0, 1000)
+    );
+}
+
+// CSVデータを検証する関数
+function scv_validate_csv_data($csv_data, $headers, $validate_urls = false) {
+    $results = array(
+        'total_rows' => count($csv_data),
+        'valid_rows' => 0,
+        'errors' => array(),
+        'warnings' => array(),
+        'field_stats' => array()
+    );
+    
+    // 必須フィールドのチェック
+    $required_fields = array('post_title');
+    $missing_required = array_diff($required_fields, $headers);
+    
+    if (!empty($missing_required)) {
+        $results['errors'][] = '必須フィールドが不足: ' . implode(', ', $missing_required);
+    }
+    
+    // 各行のデータを検証
+    foreach ($csv_data as $row_index => $row) {
+        $row_number = $row_index + 2; // ヘッダー行を考慮
+        $row_errors = array();
+        $row_warnings = array();
+        
+        // 空行のチェック
+        if (empty(array_filter($row))) {
+            $row_warnings[] = "行 {$row_number}: 空行です";
+            continue;
+        }
+        
+        // データを連想配列に変換
+        $data = array();
+        foreach ($headers as $index => $header) {
+            $data[$header] = isset($row[$index]) ? trim($row[$index]) : '';
+        }
+        
+        // フィールド統計を更新
+        foreach ($data as $field => $value) {
+            if (!isset($results['field_stats'][$field])) {
+                $results['field_stats'][$field] = array(
+                    'empty_count' => 0,
+                    'total_count' => 0,
+                    'sample_values' => array()
+                );
+            }
+            
+            $results['field_stats'][$field]['total_count']++;
+            
+            if (empty($value)) {
+                $results['field_stats'][$field]['empty_count']++;
+            } else {
+                if (count($results['field_stats'][$field]['sample_values']) < 3) {
+                    $results['field_stats'][$field]['sample_values'][] = $value;
+                }
+            }
+        }
+        
+        // 詳細検証
+        $validation_result = scv_check_csv_row($data, $row_number, $validate_urls);
+        $row_errors = array_merge($row_errors, $validation_result['errors']);
+        $row_warnings = array_merge($row_warnings, $validation_result['warnings']);
+        
+        if (empty($row_errors)) {
+            $results['valid_rows']++;
+        }
+        
+        $results['errors'] = array_merge($results['errors'], $row_errors);
+        $results['warnings'] = array_merge($results['warnings'], $row_warnings);
+    }
+    
+    return $results;
+}
+
+// CSV行を検証する関数
+function scv_check_csv_row($data, $row_number, $validate_urls = false) {
+    $errors = array();
+    $warnings = array();
+    
+    // post_titleの検証
+    if (empty($data['post_title'])) {
+        $errors[] = "行 {$row_number}: post_title が空です";
+    } elseif (strlen($data['post_title']) > 255) {
+        $warnings[] = "行 {$row_number}: post_title が長すぎます (255文字以下推奨)";
+    }
+    
+    // post_idの検証
+    if (!empty($data['post_id'])) {
+        if (!is_numeric($data['post_id'])) {
+            $errors[] = "行 {$row_number}: post_id は数値である必要があります";
+        } else {
+            $post_id = intval($data['post_id']);
+            if (!get_post($post_id)) {
+                $warnings[] = "行 {$row_number}: 指定されたpost_id の投稿が見つかりません: {$post_id}";
+            }
+        }
+    }
+    
+    // post_authorの検証
+    if (!empty($data['post_author'])) {
+        if (!is_numeric($data['post_author'])) {
+            $errors[] = "行 {$row_number}: post_author は数値である必要があります";
+        } else {
+            $author_id = intval($data['post_author']);
+            if (!get_userdata($author_id)) {
+                $errors[] = "行 {$row_number}: 指定されたpost_author のユーザーが見つかりません: {$author_id}";
+            }
+        }
+    }
+    
+    // post_dateの検証
+    if (!empty($data['post_date'])) {
+        $timestamp = strtotime($data['post_date']);
+        if ($timestamp === false || $timestamp === -1) {
+            $errors[] = "行 {$row_number}: post_date の形式が正しくありません";
+        }
+    }
+    
+    // post_statusの検証
+    if (!empty($data['post_status'])) {
+        $valid_statuses = array('publish', 'draft', 'private', 'pending', 'future', 'trash');
+        if (!in_array($data['post_status'], $valid_statuses)) {
+            $warnings[] = "行 {$row_number}: post_status '{$data['post_status']}' は標準的ではありません";
+        }
+    }
+    
+    // post_typeの検証
+    if (!empty($data['post_type'])) {
+        if (!post_type_exists($data['post_type'])) {
+            $errors[] = "行 {$row_number}: 投稿タイプ '{$data['post_type']}' が存在しません";
+        }
+    }
+    
+    // post_passwordの検証
+    if (!empty($data['post_password']) && strlen($data['post_password']) > 20) {
+        $warnings[] = "行 {$row_number}: post_password が長すぎます (20文字以下推奨)";
+    }
+    
+    // menu_orderの検証
+    if (!empty($data['menu_order']) && !is_numeric($data['menu_order'])) {
+        $errors[] = "行 {$row_number}: menu_order は数値である必要があります";
+    }
+    
+    // post_thumbnailの検証
+    if (!empty($data['post_thumbnail'])) {
+        if (!filter_var($data['post_thumbnail'], FILTER_VALIDATE_URL)) {
+            $errors[] = "行 {$row_number}: post_thumbnail は有効なURLである必要があります";
+        } elseif ($validate_urls) {
+            // URL の有効性をチェック（時間がかかる可能性があるため、オプション）
+            $headers = @get_headers($data['post_thumbnail'], 1);
+            if (!$headers || strpos($headers[0], '200') === false) {
+                $warnings[] = "行 {$row_number}: post_thumbnail のURLにアクセスできません: {$data['post_thumbnail']}";
+            }
+        }
+    }
+    
+    // HTMLコンテンツの基本チェック
+    if (!empty($data['post_content'])) {
+        // HTMLタグの基本的な妥当性チェック
+        if (strip_tags($data['post_content']) !== $data['post_content']) {
+            // HTMLタグが含まれている場合
+            $allowed_tags = wp_kses_allowed_html('post');
+            $cleaned_content = wp_kses($data['post_content'], $allowed_tags);
+            if ($cleaned_content !== $data['post_content']) {
+                $warnings[] = "行 {$row_number}: post_content に許可されていないHTMLタグが含まれています";
+            }
+        }
+    }
+    
+    return array(
+        'errors' => $errors,
+        'warnings' => $warnings
+    );
+}
+
+// CSVテスト結果のサマリーを表示する関数（上部通知用）
+function scv_display_csv_test_summary($file_analysis, $validation_results, $detailed_check) {
+    $has_errors = $detailed_check && !empty($validation_results) && !empty($validation_results['errors']);
+    $has_warnings = $detailed_check && !empty($validation_results) && !empty($validation_results['warnings']);
+    
+    if ($has_errors) {
+        echo '<div class="notice notice-error">';
+        echo '<p><strong>CSVファイルにエラーが見つかりました</strong></p>';
+        echo '<p>エラー: ' . count($validation_results['errors']) . '件';
+        if ($has_warnings) {
+            echo ' | 警告: ' . count($validation_results['warnings']) . '件';
+        }
+        echo ' | エンコーディング: ' . $file_analysis['encoding'];
+        echo '</p>';
+        echo '</div>';
+    } elseif ($has_warnings) {
+        echo '<div class="notice notice-warning">';
+        echo '<p><strong>CSVファイルに警告があります</strong></p>';
+        echo '<p>警告: ' . count($validation_results['warnings']) . '件';
+        echo ' | エンコーディング: ' . $file_analysis['encoding'];
+        if ($detailed_check && !empty($validation_results)) {
+            echo ' | 有効行数: ' . $validation_results['valid_rows'] . '/' . $validation_results['total_rows'] . '行';
+        }
+        echo '</p>';
+        echo '</div>';
+    } else {
+        echo '<div class="notice notice-success">';
+        echo '<p><strong>CSVファイルのテストが完了しました</strong></p>';
+        echo '<p>';
+        if ($detailed_check && !empty($validation_results)) {
+            echo '検証結果: 問題なし | ';
+        }
+        echo 'エンコーディング: ' . $file_analysis['encoding'];
+        if ($detailed_check && !empty($validation_results)) {
+            echo ' | データ行数: ' . $validation_results['total_rows'] . '行';
+        }
+        echo '</p>';
+        echo '</div>';
+    }
+}
+
+// CSVテスト結果の詳細を表示する関数（下部詳細用）
+function scv_display_csv_test_details($file_analysis, $headers, $csv_data, $validation_results, $detailed_check) {
+    echo '<div style="margin-top: 30px;">';
+    echo '<h3>詳細結果</h3>';
+    
+    // ファイル情報
+    echo '<div class="postbox" style="margin: 15px 0;">';
+    echo '<div class="inside" style="padding: 12px;">';
+    echo '<h4 style="margin-top: 0;">ファイル情報</h4>';
+    echo '<table class="widefat striped" style="margin: 0;">';
+    echo '<tr><td style="width: 150px;"><strong>ファイルサイズ</strong></td><td>' . size_format($file_analysis['file_size']) . '</td></tr>';
+    echo '<tr><td><strong>エンコーディング</strong></td><td>';
+    if ($file_analysis['encoding'] === 'UTF-8') {
+        echo '<span style="color: #46b450;">' . $file_analysis['encoding'] . '</span>';
+    } else {
+        echo '<span style="color: #dc3232;">' . $file_analysis['encoding'] . '</span>';
+    }
+    if ($file_analysis['has_bom']) {
+        echo ' (BOM付き)';
+    }
+    echo '</td></tr>';
+    echo '<tr><td><strong>総行数</strong></td><td>' . number_format($file_analysis['total_lines']) . ' 行</td></tr>';
+    echo '<tr><td><strong>データ行数</strong></td><td>' . number_format(count($csv_data)) . ' 行</td></tr>';
+    echo '</table>';
+    echo '</div>';
+    echo '</div>';
+    
+    // ヘッダー情報
+    echo '<div class="postbox" style="margin: 15px 0;">';
+    echo '<div class="inside" style="padding: 12px;">';
+    echo '<h4 style="margin-top: 0;">列情報 (' . count($headers) . ' 列)</h4>';
+    echo '<div style="line-height: 1.6;">';
+    
+    $standard_fields = array('post_id', 'post_name', 'post_author', 'post_date', 'post_content', 'post_title', 'post_excerpt', 'post_status', 'post_password', 'menu_order', 'post_type', 'post_thumbnail', 'post_category', 'post_tags');
+    
+    foreach ($headers as $header) {
+        $is_standard = in_array($header, $standard_fields);
+        $is_taxonomy = strpos($header, 'tax_') === 0;
+        
+        if ($is_standard) {
+            echo '<span class="button button-small" style="margin: 2px; background: #46b450; color: white; border-color: #46b450;">' . esc_html($header) . '</span>';
+        } elseif ($is_taxonomy) {
+            echo '<span class="button button-small" style="margin: 2px; background: #0073aa; color: white; border-color: #0073aa;">' . esc_html($header) . '</span>';
+        } else {
+            echo '<span class="button button-small" style="margin: 2px;">' . esc_html($header) . '</span>';
+        }
+    }
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+    
+    // データプレビュー
+    echo '<div class="postbox" style="margin: 15px 0;">';
+    echo '<div class="inside" style="padding: 12px;">';
+    echo '<h4 style="margin-top: 0;">データプレビュー (最初の5行)</h4>';
+    echo '<div style="overflow-x: auto;">';
+    echo '<table class="widefat striped" style="font-size: 12px;">';
+    echo '<thead><tr>';
+    foreach ($headers as $header) {
+        echo '<th style="padding: 8px; white-space: nowrap;">' . esc_html($header) . '</th>';
+    }
+    echo '</tr></thead><tbody>';
+    
+    for ($i = 0; $i < min(5, count($csv_data)); $i++) {
+        echo '<tr>';
+        for ($j = 0; $j < count($headers); $j++) {
+            $value = isset($csv_data[$i][$j]) ? $csv_data[$i][$j] : '';
+            $display_value = strlen($value) > 40 ? substr($value, 0, 40) . '...' : $value;
+            echo '<td style="padding: 8px;" title="' . esc_attr($value) . '">' . esc_html($display_value) . '</td>';
+        }
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    
+    if (count($csv_data) > 5) {
+        echo '<p style="margin: 10px 0 0 0; color: #666; font-style: italic;">他 ' . (count($csv_data) - 5) . ' 行のデータがあります</p>';
+    }
+    echo '</div>';
+    echo '</div>';
+    echo '</div>';
+    
+    // 検証結果
+    if ($detailed_check && !empty($validation_results)) {
+        $has_errors = !empty($validation_results['errors']);
+        echo '<div class="postbox" style="margin: 15px 0;">';
+        echo '<div class="inside" style="padding: 12px;">';
+        echo '<h4 style="margin-top: 0;">データ検証結果</h4>';
+        
+        // 概要
+        echo '<table class="widefat" style="margin-bottom: 15px;">';
+        echo '<tr><td style="width: 150px;"><strong>総行数</strong></td><td>' . number_format($validation_results['total_rows']) . ' 行</td></tr>';
+        echo '<tr><td><strong>有効行数</strong></td><td style="color: #46b450; font-weight: bold;">' . number_format($validation_results['valid_rows']) . ' 行</td></tr>';
+        echo '<tr><td><strong>エラー数</strong></td><td style="color: ' . ($has_errors ? '#dc3232' : '#46b450') . '; font-weight: bold;">' . count($validation_results['errors']) . ' 件</td></tr>';
+        echo '<tr><td><strong>警告数</strong></td><td style="color: ' . (!empty($validation_results['warnings']) ? '#ffb900' : '#46b450') . '; font-weight: bold;">' . count($validation_results['warnings']) . ' 件</td></tr>';
+        echo '</table>';
+        
+        // エラー詳細
+        if ($has_errors) {
+            echo '<div style="background: #fff2f2; border-left: 4px solid #dc3232; padding: 12px; margin: 10px 0;">';
+            echo '<h5 style="margin: 0 0 10px 0; color: #dc3232;">エラー詳細</h5>';
+            echo '<ul style="margin: 0;">';
+            foreach (array_slice($validation_results['errors'], 0, 8) as $error) {
+                echo '<li>' . esc_html($error) . '</li>';
+            }
+            if (count($validation_results['errors']) > 8) {
+                echo '<li style="color: #666; font-style: italic;">他 ' . (count($validation_results['errors']) - 8) . ' 件のエラー</li>';
+            }
+            echo '</ul>';
+            echo '</div>';
+        }
+        
+        // 警告詳細
+        if (!empty($validation_results['warnings'])) {
+            echo '<div style="background: #fff8e5; border-left: 4px solid #ffb900; padding: 12px; margin: 10px 0;">';
+            echo '<h5 style="margin: 0 0 10px 0; color: #996600;">警告詳細</h5>';
+            echo '<ul style="margin: 0;">';
+            foreach (array_slice($validation_results['warnings'], 0, 8) as $warning) {
+                echo '<li>' . esc_html($warning) . '</li>';
+            }
+            if (count($validation_results['warnings']) > 8) {
+                echo '<li style="color: #666; font-style: italic;">他 ' . (count($validation_results['warnings']) - 8) . ' 件の警告</li>';
+            }
+            echo '</ul>';
+            echo '</div>';
+        }
+        echo '</div>';
+        echo '</div>';
+    }
+    
+    // 確認事項
+    echo '<div class="postbox" style="margin: 15px 0;">';
+    echo '<div class="inside" style="padding: 12px;">';
+    echo '<h4 style="margin-top: 0;">確認事項</h4>';
+    echo '<ul style="margin: 0;">';
+    
+    if ($file_analysis['encoding'] !== 'UTF-8') {
+        echo '<li style="color: #dc3232;">ファイルをUTF-8エンコーディングで保存し直すことを推奨します</li>';
+    } else {
+        echo '<li style="color: #46b450;">エンコーディングは適切です (UTF-8)</li>';
+    }
+    
+    if (!in_array('post_title', $headers)) {
+        echo '<li style="color: #dc3232;">必須フィールド「post_title」が不足しています</li>';
+    } else {
+        echo '<li style="color: #46b450;">必須フィールド「post_title」が含まれています</li>';
+    }
+    
+    if ($detailed_check) {
+        if (!empty($validation_results['errors'])) {
+            echo '<li style="color: #dc3232;">エラーを修正してからインポートを実行してください</li>';
+        } else {
+            echo '<li style="color: #46b450;">データ検証でエラーは見つかりませんでした</li>';
+        }
+    }
+    
+    echo '</ul>';
+    echo '</div>';
+    echo '</div>';
+    
+    echo '</div>';
+}
+
+// テスト結果を表示する関数（後方互換性のため残しておく）
+function scv_display_csv_test_results($file_analysis, $headers, $csv_data, $validation_results, $detailed_check) {
+    // 新しい方式では使用されない（後方互換性のみ）
+    scv_display_csv_test_details($file_analysis, $headers, $csv_data, $validation_results, $detailed_check);
+}
