@@ -16,6 +16,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 // プラグインの初期化
 add_action('admin_init', 'scv_admin_init');
 add_action('admin_init', 'scv_add_importer');
+add_action('admin_menu', 'scv_add_menu_page');
+
+// 管理画面メニューに追加
+if (!function_exists('scv_add_menu_page')) {
+    function scv_add_menu_page() {
+        add_submenu_page(
+            'tools.php',                          // 親メニュー（ツール）
+            'Simple CSV Import Export',           // ページタイトル
+            'Simple CSV Import Export',           // メニュータイトル
+            'manage_options',                     // 必要な権限
+            'simple-csv-import-export',           // メニューのスラッグ
+            'scv_admin_page'                      // 表示用の関数
+        );
+    }
+}
 
 // WordPressのインポートツールに追加
 if (!function_exists('scv_add_importer')) {
