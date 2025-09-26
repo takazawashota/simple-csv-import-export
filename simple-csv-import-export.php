@@ -27,6 +27,27 @@ function scv_add_importer() {
     );
 }
 
+// プラグイン非アクティブ化時のクリーンアップ
+register_deactivation_hook(__FILE__, 'scv_cleanup_temp_files');
+
+function scv_cleanup_temp_files() {
+    // WordPress Filesystem APIを初期化
+    if (!function_exists('WP_Filesystem')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+    }
+    
+    WP_Filesystem();
+    global $wp_filesystem;
+    
+    // 一時ディレクトリをクリーンアップ
+    $upload_dir = wp_upload_dir();
+    $temp_dir = $upload_dir['basedir'] . '/csv_temp/';
+    
+    if ($wp_filesystem->exists($temp_dir)) {
+        $wp_filesystem->rmdir($temp_dir, true);
+    }
+}
+
 // 管理画面の初期化
 function scv_admin_init() {
     // CSVファイルのアップロード処理
@@ -235,7 +256,6 @@ function scv_admin_page() {
 
         <!-- CSVテストタブ -->
         <div id="tab-test" class="scv-tab-content">
-            <h3>CSVファイルテスト・プレビュー</h3>
             <p>CSVファイルをアップロードして、内容の確認とファイル形式の検証を行います。</p>
             
             <form method="post" enctype="multipart/form-data" id="csv-test-form">
@@ -244,7 +264,6 @@ function scv_admin_page() {
                 <div class="scv-form-group">
                     <label for="test_csv_file" class="scv-form-label">テスト用CSVファイル:</label>
                     <input type="file" name="test_csv_file" id="test_csv_file" accept=".csv" required>
-                    <p class="description">アップロードしたCSVファイルの内容とエンコーディングを確認できます。</p>
                 </div>
                 
                 <div class="scv-form-group">
@@ -515,6 +534,14 @@ function scv_process_csv_import() {
         wp_die('権限がありません。');
     }
     
+    // ファイルアップロードのセキュリティチェック
+    if (!isset($_FILES['csv_file']) || !is_uploaded_file($_FILES['csv_file']['tmp_name'])) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>適切なファイルがアップロードされていません。</p></div>';
+        });
+        return;
+    }
+    
     $uploaded_file = $_FILES['csv_file'];
     $update_existing = isset($_POST['update_existing']);
     $skip_errors = isset($_POST['skip_errors']);
@@ -600,8 +627,21 @@ function scv_process_csv_import() {
 function scv_read_csv_file($file_path) {
     $csv_data = array();
     
+    // WordPress Filesystem APIを初期化
+    if (!function_exists('WP_Filesystem')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+    }
+    
+    WP_Filesystem();
+    global $wp_filesystem;
+    
+    // ファイルの存在とアクセス権限をチェック
+    if (!$wp_filesystem->exists($file_path) || !$wp_filesystem->is_readable($file_path)) {
+        return false;
+    }
+    
     // ファイルを開く（BOM対応）
-    $content = file_get_contents($file_path);
+    $content = $wp_filesystem->get_contents($file_path);
     if ($content === false) {
         return false;
     }
@@ -612,9 +652,19 @@ function scv_read_csv_file($file_path) {
     // 改行コードを統一
     $content = str_replace(array("\r\n", "\r"), "\n", $content);
     
-    // 一時ファイルに書き込み
-    $temp_file = tempnam(sys_get_temp_dir(), 'csv_import_');
-    file_put_contents($temp_file, $content);
+    // WordPress一時ディレクトリを使用
+    $upload_dir = wp_upload_dir();
+    $temp_dir = $upload_dir['basedir'] . '/csv_temp/';
+    
+    // 一時ディレクトリを作成（存在しない場合）
+    if (!$wp_filesystem->exists($temp_dir)) {
+        $wp_filesystem->mkdir($temp_dir, FS_CHMOD_DIR);
+    }
+    
+    $temp_file = $temp_dir . 'csv_import_' . wp_generate_uuid4() . '.tmp';
+    if (!$wp_filesystem->put_contents($temp_file, $content, FS_CHMOD_FILE)) {
+        return false;
+    }
     
     // CSVを解析
     if (($handle = fopen($temp_file, 'r')) !== false) {
@@ -622,10 +672,14 @@ function scv_read_csv_file($file_path) {
             $csv_data[] = $data;
         }
         fclose($handle);
+        
+        // 一時ファイルを削除
+        $wp_filesystem->delete($temp_file);
+    } else {
+        // ファイルオープンに失敗した場合も一時ファイルを削除
+        $wp_filesystem->delete($temp_file);
+        return false;
     }
-    
-    // 一時ファイルを削除
-    unlink($temp_file);
     
     return $csv_data;
 }
@@ -859,7 +913,14 @@ function scv_import_posts($csv_data, $headers, $update_existing, $skip_errors, $
             
             // サムネイル画像の設定
             if (!empty($data['post_thumbnail'])) {
-                scv_set_post_thumbnail($post_id, $data['post_thumbnail']);
+                try {
+                    $thumbnail_result = scv_set_post_thumbnail($post_id, $data['post_thumbnail']);
+                    if ($thumbnail_result === false) {
+                        $results['error_messages'][] = "行 {$row_number}: サムネイル画像の設定に失敗しました: " . $data['post_thumbnail'];
+                    }
+                } catch (Exception $e) {
+                    $results['error_messages'][] = "行 {$row_number}: サムネイル画像処理エラー: " . $e->getMessage();
+                }
             }
             
             $results['success']++;
@@ -1024,58 +1085,120 @@ function scv_set_post_taxonomies($post_id, $data) {
 
 // 投稿のサムネイル画像を設定する関数
 function scv_set_post_thumbnail($post_id, $thumbnail_url) {
-    if (empty($thumbnail_url)) {
-        return;
+    // 空のURLや無効なURLをチェック
+    if (empty($thumbnail_url) || !filter_var($thumbnail_url, FILTER_VALIDATE_URL)) {
+        error_log('SCV: Invalid thumbnail URL: ' . $thumbnail_url);
+        return false;
     }
     
-    // 既にメディアライブラリに存在するかチェック
-    $attachment_id = attachment_url_to_postid($thumbnail_url);
-    
-    if ($attachment_id) {
-        // 既存の画像を使用
-        set_post_thumbnail($post_id, $attachment_id);
-    } else {
-        // 新しい画像をダウンロードしてメディアライブラリに追加
-        $upload_result = scv_download_and_attach_image($thumbnail_url, $post_id);
-        if ($upload_result && !is_wp_error($upload_result)) {
-            set_post_thumbnail($post_id, $upload_result);
+    try {
+        // 既にメディアライブラリに存在するかチェック
+        $attachment_id = attachment_url_to_postid($thumbnail_url);
+        
+        if ($attachment_id) {
+            // 既存の画像を使用
+            $result = set_post_thumbnail($post_id, $attachment_id);
+            if (!$result) {
+                error_log('SCV: Failed to set existing thumbnail for post ' . $post_id . ', attachment ' . $attachment_id);
+                return false;
+            }
+            return $attachment_id;
+        } else {
+            // 新しい画像をダウンロードしてメディアライブラリに追加
+            $upload_result = scv_download_and_attach_image($thumbnail_url, $post_id);
+            if ($upload_result && !is_wp_error($upload_result)) {
+                $result = set_post_thumbnail($post_id, $upload_result);
+                if (!$result) {
+                    error_log('SCV: Failed to set new thumbnail for post ' . $post_id . ', attachment ' . $upload_result);
+                    return false;
+                }
+                return $upload_result;
+            } else {
+                if (is_wp_error($upload_result)) {
+                    error_log('SCV: Failed to download/attach image: ' . $upload_result->get_error_message());
+                } else {
+                    error_log('SCV: Unknown error downloading/attaching image: ' . $thumbnail_url);
+                }
+                return false;
+            }
         }
+    } catch (Exception $e) {
+        error_log('SCV: Exception in scv_set_post_thumbnail: ' . $e->getMessage());
+        return false;
     }
 }
 
 // 画像をダウンロードしてメディアライブラリに追加する関数
 function scv_download_and_attach_image($image_url, $post_id) {
-    require_once(ABSPATH . 'wp-admin/includes/media.php');
-    require_once(ABSPATH . 'wp-admin/includes/file.php');
-    require_once(ABSPATH . 'wp-admin/includes/image.php');
-    
-    // 画像をダウンロード
-    $temp_file = download_url($image_url);
-    if (is_wp_error($temp_file)) {
-        return $temp_file;
+    // URLの検証
+    if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
+        error_log('SCV: Invalid image URL: ' . $image_url);
+        return new WP_Error('invalid_url', '無効なURLです: ' . $image_url);
     }
     
-    // ファイル情報を取得
-    $file_info = pathinfo($image_url);
-    $filename = basename($image_url);
-    
-    // アップロード処理
-    $file_array = array(
-        'name' => $filename,
-        'tmp_name' => $temp_file,
-    );
-    
-    // メディアライブラリに追加
-    $attachment_id = media_handle_sideload($file_array, $post_id);
-    
-    // 一時ファイルを削除
-    @unlink($temp_file);
-    
-    if (is_wp_error($attachment_id)) {
+    try {
+        // 必要なファイルをインクルード
+        if (!function_exists('media_handle_sideload')) {
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+        }
+        if (!function_exists('download_url')) {
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+        }
+        if (!function_exists('wp_generate_attachment_metadata')) {
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+        }
+        
+        // 画像をダウンロード
+        $temp_file = download_url($image_url);
+        if (is_wp_error($temp_file)) {
+            error_log('SCV: Failed to download image ' . $image_url . ': ' . $temp_file->get_error_message());
+            return $temp_file;
+        }
+        
+        // ファイルが正常にダウンロードされたかチェック
+        if (!file_exists($temp_file) || filesize($temp_file) == 0) {
+            if (file_exists($temp_file)) {
+                wp_delete_file($temp_file);
+            }
+            error_log('SCV: Downloaded file is empty or missing: ' . $image_url);
+            return new WP_Error('empty_file', 'ダウンロードしたファイルが空です');
+        }
+        
+        // ファイル情報を取得
+        $file_info = pathinfo($image_url);
+        $filename = sanitize_file_name(basename($image_url));
+        
+        // ファイル名が空の場合のフォールバック
+        if (empty($filename)) {
+            $filename = 'image_' . wp_generate_uuid4() . '.jpg';
+        }
+        
+        // アップロード処理
+        $file_array = array(
+            'name' => $filename,
+            'tmp_name' => $temp_file,
+        );
+        
+        // メディアライブラリに追加
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+        
+        // 一時ファイルを安全に削除
+        if (file_exists($temp_file)) {
+            wp_delete_file($temp_file);
+        }
+        
+        if (is_wp_error($attachment_id)) {
+            error_log('SCV: Failed to create attachment for ' . $image_url . ': ' . $attachment_id->get_error_message());
+            return $attachment_id;
+        }
+        
+        error_log('SCV: Successfully created attachment ' . $attachment_id . ' for image ' . $image_url);
         return $attachment_id;
+        
+    } catch (Exception $e) {
+        error_log('SCV: Exception in scv_download_and_attach_image: ' . $e->getMessage());
+        return new WP_Error('exception', 'エラーが発生しました: ' . $e->getMessage());
     }
-    
-    return $attachment_id;
 }
 
 // CSVエクスポート処理
@@ -1256,13 +1379,21 @@ function scv_generate_csv_data($posts) {
 
 // CSV ファイルをダウンロードする関数
 function scv_download_csv($csv_data, $post_type, $post_status) {
-    $filename = 'wordpress_export_' . $post_type . '_' . $post_status . '_' . date('Y-m-d_H-i-s') . '.csv';
+    $filename = sanitize_file_name('wordpress_export_' . $post_type . '_' . $post_status . '_' . date('Y-m-d_H-i-s') . '.csv');
+    
+    // 出力バッファをクリア
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
     
     // HTTP ヘッダーを設定
+    nocache_headers();
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Content-Disposition: attachment; filename="' . esc_attr($filename) . '"');
+    header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Pragma: public');
     
     // BOM を追加（Excel での文字化け防止）
     echo "\xEF\xBB\xBF";
@@ -1350,13 +1481,21 @@ function scv_download_sample_csv() {
         )
     );
     
-    $filename = 'wordpress_import_sample_' . date('Y-m-d_H-i-s') . '.csv';
+    $filename = sanitize_file_name('wordpress_import_sample_' . date('Y-m-d_H-i-s') . '.csv');
+    
+    // 出力バッファをクリア
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
     
     // HTTP ヘッダーを設定
+    nocache_headers();
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Content-Disposition: attachment; filename="' . esc_attr($filename) . '"');
+    header('Content-Transfer-Encoding: binary');
     header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Pragma: public');
     
     // BOM を追加（Excel での文字化け防止）
     echo "\xEF\xBB\xBF";
@@ -1383,9 +1522,36 @@ function scv_process_csv_test() {
         wp_die('権限がありません。');
     }
     
+    // ファイルアップロードのセキュリティチェック
+    if (!isset($_FILES['test_csv_file']) || !is_uploaded_file($_FILES['test_csv_file']['tmp_name'])) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>適切なファイルがアップロードされていません。</p></div>';
+        });
+        return;
+    }
+    
     $uploaded_file = $_FILES['test_csv_file'];
     $detailed_check = isset($_POST['detailed_check']);
     $validate_urls = isset($_POST['validate_urls']);
+    
+    // ファイルサイズチェック（10MB以下）
+    if ($uploaded_file['size'] > 10 * 1024 * 1024) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>ファイルサイズが大きすぎます（10MB以下にしてください）。</p></div>';
+        });
+        return;
+    }
+    
+    // MIMEタイプチェック
+    $allowed_types = array('text/csv', 'text/plain', 'application/csv', 'application/excel');
+    $file_type = wp_check_filetype($uploaded_file['name']);
+    
+    if (!in_array($file_type['type'], $allowed_types) && $file_type['ext'] !== 'csv') {
+        add_action('admin_notices', function() use ($file_type) {
+            echo '<div class="notice notice-error"><p>許可されていないファイルタイプです：' . esc_html($file_type['type']) . '</p></div>';
+        });
+        return;
+    }
     
     // ファイルのバリデーション
     if ($uploaded_file['error'] !== UPLOAD_ERR_OK) {
@@ -1458,12 +1624,20 @@ function scv_process_csv_test() {
 
 // CSVファイルを解析する関数
 function scv_analyze_csv_file($file_path) {
-    if (!file_exists($file_path)) {
+    // WordPress Filesystem APIを初期化
+    if (!function_exists('WP_Filesystem')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+    }
+    
+    WP_Filesystem();
+    global $wp_filesystem;
+    
+    if (!$wp_filesystem->exists($file_path)) {
         return false;
     }
     
-    $file_size = filesize($file_path);
-    $content = file_get_contents($file_path);
+    $file_size = $wp_filesystem->size($file_path);
+    $content = $wp_filesystem->get_contents($file_path);
     
     if ($content === false) {
         return false;
