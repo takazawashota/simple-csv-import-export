@@ -9,112 +9,112 @@ License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 
-CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート・エクスポートできるシンプルなプラグインです。
+CSV Import Export with a simple interface to bulk import/export posts, pages, and custom post types using CSV files.
 
 == Description ==
 
-Simple CSV Import Export は、WordPressの投稿、固定ページ、カスタム投稿タイプを CSVファイルを使用して一括でインポート・エクスポートできる使いやすいプラグインです。
+Simple CSV Import Export is an easy-to-use plugin that allows you to bulk import and export WordPress posts, pages, and custom post types using CSV files.
 
-= 主な機能 =
+= Main Features =
 
-* 投稿、固定ページ、カスタム投稿タイプの一括インポート
-* 既存の投稿の更新機能
-* カテゴリー、タグ、カスタムタクソノミーの自動作成
-* カスタムフィールドのサポート
-* アイキャッチ画像の設定
-* CSVファイルのテストと検証機能
-* エラーチェックと詳細なレポート
-* バッチ処理による大量データの安全な処理
-* UTF-8エンコーディングサポート
+* Bulk import for posts, pages, and custom post types
+* Update existing posts
+* Automatic creation of categories, tags, and custom taxonomies
+* Support for custom fields
+* Set featured images
+* CSV testing and validation function
+* Error checking and detailed reports
+* UTF-8 encoding support
 
-= 使用方法 =
+= How to Use =
 
-1. プラグインをインストールして有効化
-2. ツール > Simple CSV Import Export に移動
-3. インポートまたはエクスポート機能を選択
-4. 画面の指示に従って操作
+1. Install and activate the plugin
+2. Go to Tools > Simple CSV Import Export
+3. Select either Import or Export
+4. Upload your CSV file to import, or export posts/pages/custom post types as CSV
 
-= インポート可能なデータ =
+= Importable Data =
 
-* 投稿タイトル
-* 投稿内容
-* 投稿者
-* 公開日時
-* カテゴリー
-* タグ
-* カスタムフィールド
-* アイキャッチ画像
-* カスタムタクソノミー
-* 投稿ステータス
-* その他のメタデータ
+* Post title
+* Post content
+* Author
+* Publish date
+* Categories
+* Tags
+* Custom fields
+* Featured image
+* Custom taxonomies
+* Post status
+* Other metadata
 
-= CSVフォーマット =
+= CSV Format =
 
-基本的なCSVフォーマットについては、管理画面の「CSVフォーマット仕様」タブで確認できます。
-サンプルCSVファイルもダウンロード可能です。
+The basic CSV format can be checked in the “CSV Format Specification” tab in the admin panel.  
+A sample CSV file is also available for download.
 
-= 注意事項 =
+= Notes =
 
-* CSVファイルは UTF-8 でエンコードされている必要があります
-* 大量のデータをインポートする場合は、サーバーの設定を確認してください
-* インポート前にバックアップを取ることを推奨します
+* CSV files must be encoded in UTF-8
+* For large imports, please check your server settings
+* We recommend backing up your site before importing
 
-= リンク =
+= Links =
 
-* [公式サイト](https://sokulabo.com/plugin/simple-csv-import-export/)
+* [Official Website](https://sokulabo.com/plugin/simple-csv-import-export/)
 
 == Installation ==
 
-1. プラグインを zip ファイルとしてダウンロード
-2. WordPress の管理画面からプラグインのアップロードとインストール
-3. プラグインを有効化
-4. ツール > Simple CSV Import Export からプラグインを使用開始
+1. Download the plugin as a zip file
+2. Upload and install it from the WordPress admin panel
+3. Activate the plugin
+4. Start using it from Tools > Simple CSV Import Export
 
 == Frequently Asked Questions ==
 
-= 一度にインポートできるデータ量に制限はありますか？ =
+= Is there a limit to how much data I can import at once? =
 
-サーバーの設定（メモリ制限、実行時間制限）に依存します。プラグインは自動的にバッチサイズを調整して安全にインポートを行います。
+It depends on your server settings (memory limit, execution time, etc.). The plugin automatically adjusts batch sizes to safely handle imports.
 
-= 既存の投稿を更新することはできますか？ =
+= Can I update existing posts? =
 
-はい、CSVファイルに post_id を指定することで既存の投稿を更新できます。
+Yes. You can update existing posts by specifying the "post_id" column in the CSV file.
 
-= カスタム投稿タイプはサポートされていますか？ =
+= Does it support custom post types? =
 
-はい、すべてのカスタム投稿タイプをサポートしています。
+Yes, it supports all custom post types.
 
-= カスタムフィールドをインポート/エクスポートできますか？ =
+= Can I import/export custom fields? =
 
-はい、カスタムフィールドの値をインポート/エクスポートできます。
+Yes, custom field values can be imported and exported.
 
-= アイキャッチ画像はどのように設定しますか？ =
+= How do I set featured images? =
 
-post_thumbnail 列に画像のURLを指定することで、自動的にメディアライブラリにアップロードされ、アイキャッチ画像として設定されます。
+By specifying the image URL in the "post_thumbnail" column, the image will be automatically uploaded to the media library and set as the featured image.
 
 == Screenshots ==
 
-1. メイン画面
-2. インポート設定
-3. エクスポート設定
-4. CSVテスト機能
-5. フォーマット仕様画面
+1. Main screen
+2. Import settings
+3. Export settings
+4. CSV test function
+5. Format specification screen
 
 == Changelog ==
 
 = 1.0.0 =
-* 初回リリース
-* インポート/エクスポート機能の実装
-* CSVテスト機能の実装
-* バッチ処理の最適化機能の追加
-* サンプルCSVのダウンロード機能の追加
-* 詳細なエラーレポート機能の実装
+* Initial release
+* Implemented import/export functionality
+* Added CSV test functionality
+* Optimized batch processing
+* Added sample CSV download function
+* Implemented detailed error report feature
 
 == Upgrade Notice ==
 
 = 1.0.0 =
-初回リリース - インストールして使用開始できます。
+Initial release – install and start using.
 
 == Privacy Policy ==
 
-このプラグインは個人情報を収集しません。ただし、インポート・エクスポートするデータに個人情報が含まれる場合は、適切な取り扱いをお願いします。
+This plugin does not collect personal information.  
+However, please handle with care if the data you import/export contains personal information.
