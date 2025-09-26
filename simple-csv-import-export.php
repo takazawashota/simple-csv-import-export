@@ -21,7 +21,7 @@ add_action('admin_init', 'scv_add_importer');
 if (!function_exists('scv_add_importer')) {
     function scv_add_importer() {
         register_importer(
-            'csv-import-export',
+            'simple-csv-import-export',
             'Simple CSV Import Export',
             'CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート/エクスポートできます。',
             'scv_admin_page'
@@ -310,7 +310,7 @@ if (!function_exists('scv_admin_page')) {
             
             <!-- CSVフォーマット仕様タブ -->
             <div id="tab-format" class="scv-tab-content">
-                <p>以下のフォーマットでCSVファイルを作成してください。1行目はヘッダー行として、各列名を記述してください。</p>
+                <p>以下のフォーマットでCSVファイルを作成してください。以下の必要なデータ名を、1行目にヘッダー行として記述してください。</p>
                 
                 <table class="scv-format-table">
                     <thead>
@@ -404,7 +404,8 @@ if (!function_exists('scv_admin_page')) {
                     </tbody>
                 </table>
                 
-                <h4>サンプルCSVファイル</h4>
+                <h4 style="margin-top: 30px;">サンプルCSVファイル</h4>
+                <p>以下のサンプルCSVをダウンロードしてそのままご利用いただけます。任意の内容に編集してお使いください。</p>
                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
                     <form method="post" style="margin: 0;">
                         <?php wp_nonce_field('sample_csv_download', 'sample_csv_nonce'); ?>
@@ -424,60 +425,10 @@ if (!function_exists('scv_admin_page')) {
                 <h3>Simple CSV Import Export プラグイン マニュアル</h3>
                 
                 <div class="scv-notice">
-                    <strong>重要:</strong> このプラグインを使用する前に、以下の注意事項をお読みください。
+                    <strong>重要:</strong> このプラグインを使用する前に、以下のマニュアルをお読みください。
                 </div>
-                
-                <h4>1. CSVファイルの準備について</h4>
-                <ul>
-                    <li><strong>エンコーディング:</strong> CSVファイルは必ず UTF-8 エンコーディングで保存してください</li>
-                    <li><strong>ファイル形式:</strong> カンマ区切り（.csv）形式で保存してください</li>
-                    <li><strong>ヘッダー行:</strong> 1行目には必ず列名（フィールド名）を記述してください</li>
-                    <li><strong>文字エスケープ:</strong> データにカンマや改行が含まれる場合は、ダブルクォート（"）で囲んでください</li>
-                </ul>
-                
-                <h4>2. インポート処理について</h4>
-                <div class="scv-notice scv-success">
-                    <strong>自動バッチ処理:</strong> データ量とサーバー環境に応じて、処理速度を自動調整します。大量データも安全に処理できます。
-                </div>
-                <ul>
-                    <li><strong>必須フィールド:</strong> post_title（記事タイトル）は必須です</li>
-                    <li><strong>更新機能:</strong> post_idが指定されている場合、既存の投稿を更新できます</li>
-                    <li><strong>エラー処理:</strong> エラーが発生した行をスキップして続行できます</li>
-                    <li><strong>処理速度:</strong> データ量、サーバー環境、データの複雑さに応じて自動調整されます</li>
-                </ul>
-                
-                <h4>3. エクスポート処理について</h4>
-                <div class="scv-notice scv-success">
-                    <strong>自動制限:</strong> サーバー環境とデータ量に応じて、適切なエクスポート件数を自動設定します。
-                </div>
-                <ul>
-                    <li><strong>投稿タイプ選択:</strong> 投稿、固定ページ、カスタム投稿タイプから選択可能</li>
-                    <li><strong>ステータス選択:</strong> 公開済み、下書き、非公開などの投稿ステータスから選択可能</li>
-                    <li><strong>全データ対応:</strong> カスタムフィールドやタクソノミーも含めてエクスポート可能</li>
-                </ul>
-                
-                <h4>4. トラブルシューティング</h4>
-                <ul>
-                    <li><strong>文字化けが発生する場合:</strong> CSVファイルがUTF-8エンコーディングで保存されているか確認してください</li>
-                    <li><strong>メモリエラーが発生する場合:</strong> 大きなファイルは分割してインポートしてください</li>
-                    <li><strong>画像が表示されない場合:</strong> 画像URLが有効で、アクセス可能か確認してください</li>
-                    <li><strong>カテゴリが作成されない場合:</strong> カテゴリスラッグが適切な形式か確認してください</li>
-                    <li><strong>処理が途中で止まる場合:</strong> サーバーのタイムアウト設定を確認し、データを分割して処理してください</li>
-                </ul>
-                
-                <h4>5. セキュリティについて</h4>
-                <ul>
-                    <li><strong>権限確認:</strong> 管理者権限を持つユーザーのみが使用できます</li>
-                    <li><strong>ファイル検証:</strong> アップロードされるファイルは厳格に検証されます</li>
-                    <li><strong>データバリデーション:</strong> インポート前にデータの妥当性をチェックします</li>
-                </ul>
-                
-                <h4>6. パフォーマンス最適化</h4>
-                <ul>
-                    <li><strong>バッチ処理:</strong> データ量に応じて自動的にバッチサイズを調整</li>
-                    <li><strong>メモリ管理:</strong> 大容量ファイルでもメモリ効率よく処理</li>
-                    <li><strong>進行状況表示:</strong> 長時間の処理でも進行状況を確認可能</li>
-                </ul>
+
+                <p><a href="https://sokulabo.com/plugin/simple-csv-import-export/" target="_blank">https://sokulabo.com/plugin/simple-csv-import-export/</a></p>
             </div>
             
             <!-- JavaScript for Tab Functionality -->
