@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Simple CSV Import/Export
+ * Plugin Name: Simple CSV Import Export
  * Description: CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート/エクスポートできるプラグインです。WordPress標準のインポートツールとして統合されます。
  * Version: 1.0.0
  * Author: Shota Takazawa
@@ -22,7 +22,7 @@ if (!function_exists('scv_add_importer')) {
     function scv_add_importer() {
         register_importer(
             'csv-import-export',
-            'Simple CSV Import/Export',
+            'Simple CSV Import Export',
             'CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート/エクスポートできます。',
             'scv_admin_page'
         );
@@ -82,7 +82,7 @@ if (!function_exists('scv_admin_page')) {
     function scv_admin_page() {
     ?>
     <div class="wrap">
-        <h1>Simple CSV Import/Export</h1>
+        <h1>Simple CSV Import Export</h1>
         <p>CSVファイルを使用して、WordPressの投稿、固定ページ、カスタム投稿タイプを一括でインポート・エクスポートできます。</p>
         
         <!-- CSS スタイル -->
@@ -228,36 +228,36 @@ if (!function_exists('scv_admin_page')) {
 
             <!-- CSVエクスポートタブ -->
             <div id="tab-export" class="scv-tab-content">
-                    <form method="post">
-                        <?php wp_nonce_field('csv_export_action', 'csv_export_nonce'); ?>
-                        
-                        <div class="scv-form-group">
-                            <label for="export_post_type" class="scv-form-label">エクスポートする投稿タイプ:</label>
-                            <select name="export_post_type" id="export_post_type">
-                                <option value="post">投稿</option>
-                                <option value="page">固定ページ</option>
-                                <option value="all">すべての投稿タイプ</option>
-                                <?php
-                                $custom_post_types = get_post_types(array('public' => true, '_builtin' => false), 'objects');
-                                foreach ($custom_post_types as $post_type) {
-                                    echo '<option value="' . esc_attr($post_type->name) . '">' . esc_html($post_type->labels->name) . '</option>';
-                                }
-                                ?>
-                            </select>
-                        </div>
-                        
-                        <div class="scv-form-group">
-                            <label for="export_status" class="scv-form-label">エクスポートする投稿ステータス:</label>
-                            <select name="export_status" id="export_status">
-                                <option value="all">すべて</option>
-                                <option value="publish">公開済み</option>
-                                <option value="draft">下書き</option>
-                                <option value="private">非公開</option>
-                            </select>
-                        </div>
-                        
-                        <button type="submit" name="export_csv" class="button button-secondary">CSVをエクスポート</button>
-                    </form>
+                <form method="post">
+                    <?php wp_nonce_field('csv_export_action', 'csv_export_nonce'); ?>
+                    
+                    <div class="scv-form-group">
+                        <label for="export_post_type" class="scv-form-label">エクスポートする投稿タイプ:</label>
+                        <select name="export_post_type" id="export_post_type">
+                            <option value="post">投稿</option>
+                            <option value="page">固定ページ</option>
+                            <option value="all">すべての投稿タイプ</option>
+                            <?php
+                            $custom_post_types = get_post_types(array('public' => true, '_builtin' => false), 'objects');
+                            foreach ($custom_post_types as $post_type) {
+                                echo '<option value="' . esc_attr($post_type->name) . '">' . esc_html($post_type->labels->name) . '</option>';
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    
+                    <div class="scv-form-group">
+                        <label for="export_status" class="scv-form-label">エクスポートする投稿ステータス:</label>
+                        <select name="export_status" id="export_status">
+                            <option value="all">すべて</option>
+                            <option value="publish">公開済み</option>
+                            <option value="draft">下書き</option>
+                            <option value="private">非公開</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" name="export_csv" class="button button-secondary">CSVをエクスポート</button>
+                </form>
             </div>
 
             <!-- CSVテストタブ -->
@@ -310,118 +310,118 @@ if (!function_exists('scv_admin_page')) {
             
             <!-- CSVフォーマット仕様タブ -->
             <div id="tab-format" class="scv-tab-content">
-                    <p>以下のフォーマットでCSVファイルを作成してください。1行目はヘッダー行として、各列名を記述してください。</p>
-                    
-                    <table class="scv-format-table">
-                        <thead>
-                            <tr>
-                                <th>列名</th>
-                                <th>説明</th>
-                                <th>記入例</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>post_id</td>
-                                <td>記事のID（更新の場合のみ必要、新規作成の場合は空白）</td>
-                                <td>123</td>
-                            </tr>
-                            <tr>
-                                <td>post_name</td>
-                                <td>記事のスラッグ（半角英数字、空白の場合は自動生成）</td>
-                                <td>sample-post</td>
-                            </tr>
-                            <tr>
-                                <td>post_author</td>
-                                <td>投稿するユーザーのID</td>
-                                <td>1</td>
-                            </tr>
-                            <tr>
-                                <td>post_date</td>
-                                <td>記事の日付</td>
-                                <td>2023/01/05 0:00:00</td>
-                            </tr>
-                            <tr>
-                                <td>post_content</td>
-                                <td>記事の本文（HTMLタグ使用可能）</td>
-                                <td>&lt;p&gt;記事の本文です。&lt;/p&gt;</td>
-                            </tr>
-                            <tr>
-                                <td>post_title</td>
-                                <td>記事のタイトル</td>
-                                <td>サンプル記事</td>
-                            </tr>
-                            <tr>
-                                <td>post_excerpt</td>
-                                <td>記事の抜粋</td>
-                                <td>記事の要約文です。</td>
-                            </tr>
-                            <tr>
-                                <td>post_status</td>
-                                <td>記事の状態</td>
-                                <td>publish, draft, private</td>
-                            </tr>
-                            <tr>
-                                <td>post_password</td>
-                                <td>記事のパスワード（20文字以内）</td>
-                                <td>password123</td>
-                            </tr>
-                            <tr>
-                                <td>menu_order</td>
-                                <td>記事の順番（数字）</td>
-                                <td>1</td>
-                            </tr>
-                            <tr>
-                                <td>post_type</td>
-                                <td>投稿タイプ</td>
-                                <td>post, page, custom_type</td>
-                            </tr>
-                            <tr>
-                                <td>post_thumbnail</td>
-                                <td>サムネイル画像のURL</td>
-                                <td>http://example.com/image.jpg</td>
-                            </tr>
-                            <tr>
-                                <td>post_category</td>
-                                <td>カテゴリーのスラッグ（カンマ区切りで複数指定可能）</td>
-                                <td>category1,category2</td>
-                            </tr>
-                            <tr>
-                                <td>post_tags</td>
-                                <td>タグのスラッグ（カンマ区切りで複数指定可能）</td>
-                                <td>tag1,tag2,tag3</td>
-                            </tr>
-                            <tr>
-                                <td>tax_{taxonomy}</td>
-                                <td>カスタムタクソノミーの値（{taxonomy}を実際のタクソノミー名に置換）</td>
-                                <td>tax_product_category</td>
-                            </tr>
-                            <tr>
-                                <td>{custom_field_key}</td>
-                                <td>カスタムフィールドの値（{custom_field_key}を実際のフィールド名に置換）</td>
-                                <td>price, description</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    
-                    <h4>サンプルCSVファイル</h4>
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
-                        <form method="post" style="margin: 0;">
-                            <?php wp_nonce_field('sample_csv_download', 'sample_csv_nonce'); ?>
-                            <button type="submit" name="download_sample_csv" class="button button-secondary" style="font-size: 12px; height: 28px; padding: 0 12px; display: flex; align-items: center; gap: 5px;">
-                                サンプルCSVをダウンロード
-                            </button>
-                        </form>
-                        <span style="font-size: 12px; color: #666;">※ 実際のデータ形式を確認できます</span>
-                    </div>
-                    <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; overflow-x: auto; font-size: 11px;">post_id,post_title,post_content,post_status,post_type,post_category,post_tags
-    ,サンプル記事1,"&lt;p&gt;これは最初の記事です。&lt;/p&gt;",publish,post,sample-category,tag1
-    ,サンプル記事2,"&lt;p&gt;これは2番目の記事です。&lt;/p&gt;",draft,post,"category1,category2","tag1,tag2"</pre>
+                <p>以下のフォーマットでCSVファイルを作成してください。1行目はヘッダー行として、各列名を記述してください。</p>
+                
+                <table class="scv-format-table">
+                    <thead>
+                        <tr>
+                            <th>列名</th>
+                            <th>説明</th>
+                            <th>記入例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>post_id</td>
+                            <td>記事のID（更新の場合のみ必要、新規作成の場合は空白）</td>
+                            <td>123</td>
+                        </tr>
+                        <tr>
+                            <td>post_name</td>
+                            <td>記事のスラッグ（半角英数字、空白の場合は自動生成）</td>
+                            <td>sample-post</td>
+                        </tr>
+                        <tr>
+                            <td>post_author</td>
+                            <td>投稿するユーザーのID</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>post_date</td>
+                            <td>記事の日付</td>
+                            <td>2023/01/05 0:00:00</td>
+                        </tr>
+                        <tr>
+                            <td>post_content</td>
+                            <td>記事の本文（HTMLタグ使用可能）</td>
+                            <td>&lt;p&gt;記事の本文です。&lt;/p&gt;</td>
+                        </tr>
+                        <tr>
+                            <td>post_title</td>
+                            <td>記事のタイトル</td>
+                            <td>サンプル記事</td>
+                        </tr>
+                        <tr>
+                            <td>post_excerpt</td>
+                            <td>記事の抜粋</td>
+                            <td>記事の要約文です。</td>
+                        </tr>
+                        <tr>
+                            <td>post_status</td>
+                            <td>記事の状態</td>
+                            <td>publish, draft, private</td>
+                        </tr>
+                        <tr>
+                            <td>post_password</td>
+                            <td>記事のパスワード（20文字以内）</td>
+                            <td>password123</td>
+                        </tr>
+                        <tr>
+                            <td>menu_order</td>
+                            <td>記事の順番（数字）</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td>post_type</td>
+                            <td>投稿タイプ</td>
+                            <td>post, page, custom_type</td>
+                        </tr>
+                        <tr>
+                            <td>post_thumbnail</td>
+                            <td>サムネイル画像のURL</td>
+                            <td>http://example.com/image.jpg</td>
+                        </tr>
+                        <tr>
+                            <td>post_category</td>
+                            <td>カテゴリーのスラッグ（カンマ区切りで複数指定可能）</td>
+                            <td>category1,category2</td>
+                        </tr>
+                        <tr>
+                            <td>post_tags</td>
+                            <td>タグのスラッグ（カンマ区切りで複数指定可能）</td>
+                            <td>tag1,tag2,tag3</td>
+                        </tr>
+                        <tr>
+                            <td>tax_{taxonomy}</td>
+                            <td>カスタムタクソノミーの値（{taxonomy}を実際のタクソノミー名に置換）</td>
+                            <td>tax_product_category</td>
+                        </tr>
+                        <tr>
+                            <td>{custom_field_key}</td>
+                            <td>カスタムフィールドの値（{custom_field_key}を実際のフィールド名に置換）</td>
+                            <td>price, description</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h4>サンプルCSVファイル</h4>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                    <form method="post" style="margin: 0;">
+                        <?php wp_nonce_field('sample_csv_download', 'sample_csv_nonce'); ?>
+                        <button type="submit" name="download_sample_csv" class="button button-secondary" style="font-size: 12px; height: 28px; padding: 0 12px; display: flex; align-items: center; gap: 5px;">
+                            サンプルCSVをダウンロード
+                        </button>
+                    </form>
+                    <span style="font-size: 12px; color: #666;">※ 実際のデータ形式を確認できます</span>
+                </div>
+                <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; overflow-x: auto; font-size: 11px;">post_id,post_title,post_content,post_status,post_type,post_category,post_tags
+,サンプル記事1,"&lt;p&gt;これは最初の記事です。&lt;/p&gt;",publish,post,sample-category,tag1
+,サンプル記事2,"&lt;p&gt;これは2番目の記事です。&lt;/p&gt;",draft,post,"category1,category2","tag1,tag2"</pre>
             </div>
 
             <!-- マニュアルタブ -->
             <div id="tab-manual" class="scv-tab-content">
-                <h3>Simple CSV Import/Export プラグイン マニュアル</h3>
+                <h3>Simple CSV Import Export プラグイン マニュアル</h3>
                 
                 <div class="scv-notice">
                     <strong>重要:</strong> このプラグインを使用する前に、以下の注意事項をお読みください。
