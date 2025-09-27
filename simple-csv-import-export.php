@@ -226,9 +226,9 @@ if (!function_exists('scv_admin_page')) {
                     <div class="scv-form-group">
                         <label>
                             <input type="checkbox" name="overwrite_empty" value="1">
-                            空のデータで既存データを上書き（削除）する（post_idが同一の場合のみ有効）
+                            CSVの空セルで既存データを上書き（post_idが同一の場合のみ有効）
                         </label>
-                        <p style="font-size: 12px; color: #666; margin: 5px 0 0 20px;">チェックすると、CSVの空セルが既存の投稿データを空で上書きします。チェックしない場合、空セルは既存データを保持します。</p>
+                        <p style="font-size: 12px; color: #666; margin: 5px 0 0 20px;">チェックすると、CSVの空セルが既存の投稿データを空で上書してデータを削除します。チェックしない場合、空セルは既存データを保持します。</p>
                     </div>
                     
                     <button type="submit" name="import_csv" class="button button-primary">CSVをインポート</button>
