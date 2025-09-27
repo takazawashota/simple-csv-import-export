@@ -50,7 +50,7 @@ GPLv2 or later
 
 開発者の詳細情報は以下になります。
 
-- [高澤翔汰 プロフィール](https://ume-noki.com/operator/)
+- [高澤翔汰プロフィール](https://ume-noki.com/operator/)
 
 ## 貢献方法
 
