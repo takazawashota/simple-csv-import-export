@@ -2142,7 +2142,7 @@ if (!function_exists('scv_display_csv_test_details')) {
             echo '<h4 style="margin-top: 0;">データ検証結果</h4>';
             
             // 概要
-            echo '<table class="widefat" style="margin-bottom: 15px;">';
+            echo '<table class="widefat striped" style="margin-bottom: 15px;">';
             echo '<tr><td style="width: 150px;"><strong>総行数</strong></td><td>' . number_format($validation_results['total_rows']) . ' 行</td></tr>';
             echo '<tr><td><strong>有効行数</strong></td><td style="color: #46b450; font-weight: bold;">' . number_format($validation_results['valid_rows']) . ' 行</td></tr>';
             echo '<tr><td><strong>エラー数</strong></td><td style="color: ' . ($has_errors ? '#dc3232' : '#46b450') . '; font-weight: bold;">' . count($validation_results['errors']) . ' 件</td></tr>';
