@@ -226,7 +226,7 @@ if (!function_exists('scv_admin_page')) {
                     <div class="scv-form-group">
                         <label>
                             <input type="checkbox" name="update_existing" value="1">
-                            既存の投稿を更新する（post_idが指定されている場合）
+                            既存の投稿を更新する（post_idが指定されている場合に有効です。一致するIDが無ければ追加されません）
                         </label>
                     </div>
                     
@@ -354,7 +354,7 @@ if (!function_exists('scv_admin_page')) {
                         <tr>
                             <td>post_date</td>
                             <td>記事の日付</td>
-                            <td>2023/01/05 0:00:00</td>
+                            <td>2024-01-15 10:00:00</td>
                         </tr>
                         <tr>
                             <td>post_content</td>
@@ -394,7 +394,7 @@ if (!function_exists('scv_admin_page')) {
                         <tr>
                             <td>post_thumbnail</td>
                             <td>サムネイル画像のURL</td>
-                            <td>http://example.com/image.jpg</td>
+                            <td>https://example.com/image.jpg</td>
                         </tr>
                         <tr>
                             <td>post_category</td>
