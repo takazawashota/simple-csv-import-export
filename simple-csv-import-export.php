@@ -225,16 +225,10 @@ if (!function_exists('scv_admin_page')) {
                     
                     <div class="scv-form-group">
                         <label>
-                            <input type="checkbox" name="update_existing" value="1">
-                            既存の投稿を更新する（post_idが指定されている場合に有効です。一致するIDが無ければ追加されません）
+                            <input type="checkbox" name="overwrite_empty" value="1">
+                            空のデータで既存データを上書き（削除）する（post_idが同一の場合のみ有効）
                         </label>
-                    </div>
-                    
-                    <div class="scv-form-group">
-                        <label>
-                            <input type="checkbox" name="skip_errors" value="1" checked>
-                            エラーが発生した行をスキップして続行する
-                        </label>
+                        <p style="font-size: 12px; color: #666; margin: 5px 0 0 20px;">チェックすると、CSVの空セルが既存の投稿データを空で上書きします。チェックしない場合、空セルは既存データを保持します。</p>
                     </div>
                     
                     <button type="submit" name="import_csv" class="button button-primary">CSVをインポート</button>
@@ -517,8 +511,7 @@ if (!function_exists('scv_process_csv_import')) {
         }
         
         $uploaded_file = $_FILES['csv_file'];
-        $update_existing = isset($_POST['update_existing']);
-        $skip_errors = isset($_POST['skip_errors']);
+        $overwrite_empty = isset($_POST['overwrite_empty']); // 空データ上書きオプション
         
         // バッチサイズを自動計算（後で決定）
         $batch_size = 0;
@@ -563,18 +556,11 @@ if (!function_exists('scv_process_csv_import')) {
         // バッチサイズを自動計算
         $batch_size = scv_calculate_optimal_batch_size($csv_data, $headers);
         
-        // 必須フィールドのチェック
-        $required_fields = array('post_title');
-        $missing_fields = array_diff($required_fields, $headers);
-        if (!empty($missing_fields)) {
-            add_action('admin_notices', function() use ($missing_fields) {
-                echo '<div class="notice notice-error"><p>必須フィールドが不足しています: ' . implode(', ', $missing_fields) . '</p></div>';
-            });
-            return;
-        }
+        // 必須フィールドのチェック（post_titleの必須チェックを削除）
+        // 空のpost_titleでもインポートを継続する
         
-        // インポート処理の実行
-        $results = scv_import_posts($csv_data, $headers, $update_existing, $skip_errors, $batch_size);
+        // インポート処理の実行（高速モード有効、空データ上書きオプション対応）
+        $results = scv_import_posts($csv_data, $headers, $batch_size, true, $overwrite_empty); // 第5パラメータで空データ上書きオプションを渡す
         
         // 結果の表示
         add_action('admin_notices', function() use ($results, $batch_size) {
@@ -661,58 +647,64 @@ if (!function_exists('scv_read_csv_file')) {
     }
 }
 
-// 最適なバッチサイズを自動計算する関数
+// 最適なバッチサイズを自動計算する関数（軽量化版）
 if (!function_exists('scv_calculate_optimal_batch_size')) {
     function scv_calculate_optimal_batch_size($csv_data, $headers) {
         $total_rows = count($csv_data);
         
-        // 基本バッチサイズを設定
-        $base_batch_size = 50;
+        // 基本バッチサイズを軽量化に最適化（小さく設定）
+        $base_batch_size = 20; // 50から20に削減
     
-        // データ量に基づく調整
-        if ($total_rows <= 100) {
-            $size_factor = 1.0; // 小規模: そのまま
+        // データ量に基づく調整（より軽量化重視）
+        if ($total_rows <= 50) {
+            $size_factor = 1.5; // 小規模: 少し上げる
+        } elseif ($total_rows <= 200) {
+            $size_factor = 1.0; // 中小規模: そのまま
         } elseif ($total_rows <= 500) {
-            $size_factor = 0.8; // 中規模: 少し下げる
+            $size_factor = 0.7; // 中規模: 下げる
         } elseif ($total_rows <= 1000) {
-            $size_factor = 0.6; // 大規模: 下げる
+            $size_factor = 0.5; // 大規模: 大幅に下げる
         } else {
-            $size_factor = 0.4; // 超大規模: 大幅に下げる
+            $size_factor = 0.3; // 超大規模: 大幅に下げる
         }
         
-        // サーバー環境に基づく調整
+        // サーバー環境に基づく調整（軽量化重視）
         $memory_limit = ini_get('memory_limit');
         $memory_in_mb = intval($memory_limit);
         
-        if ($memory_in_mb >= 512) {
-            $memory_factor = 1.2; // 高メモリ: 上げる
-        } elseif ($memory_in_mb >= 256) {
+        if ($memory_in_mb >= 1024) {
+            $memory_factor = 1.3; // 高メモリ: 上げる
+        } elseif ($memory_in_mb >= 512) {
             $memory_factor = 1.0; // 標準メモリ: そのまま
+        } elseif ($memory_in_mb >= 256) {
+            $memory_factor = 0.8; // 低メモリ: 下げる
         } else {
-            $memory_factor = 0.7; // 低メモリ: 下げる
+            $memory_factor = 0.5; // 非常に低メモリ: 大幅に下げる
         }
         
         // 実行時間制限に基づく調整
         $max_execution_time = ini_get('max_execution_time');
         if ($max_execution_time == 0) {
-            $time_factor = 1.2; // 無制限: 上げる
+            $time_factor = 1.5; // 無制限: 上げる
         } elseif ($max_execution_time >= 300) {
-            $time_factor = 1.1; // 長時間: 少し上げる
-        } elseif ($max_execution_time >= 60) {
+            $time_factor = 1.2; // 長時間: 少し上げる
+        } elseif ($max_execution_time >= 120) {
             $time_factor = 1.0; // 標準: そのまま
+        } elseif ($max_execution_time >= 60) {
+            $time_factor = 0.8; // 短時間: 下げる
         } else {
-            $time_factor = 0.6; // 短時間: 下げる
+            $time_factor = 0.4; // 非常に短時間: 大幅に下げる
         }
         
         // 複雑度に基づく調整（画像やカスタムフィールドの有無）
         $complexity_factor = 1.0;
         
-        // 画像フィールドがある場合
+        // 画像フィールドがある場合（処理が重い）
         if (in_array('post_thumbnail', $headers)) {
-            $complexity_factor *= 0.5; // 画像処理は重いので大幅に下げる
+            $complexity_factor *= 0.3; // 画像処理は非常に重いのでさらに下げる
         }
         
-        // カスタムフィールドの数
+        // カスタムフィールドの数（より厳しく制限）
         $custom_field_count = 0;
         foreach ($headers as $header) {
             if (!in_array($header, array('post_id', 'post_name', 'post_author', 'post_date', 'post_content', 'post_title', 'post_excerpt', 'post_status', 'post_password', 'menu_order', 'post_type', 'post_thumbnail', 'post_category', 'post_tags')) && strpos($header, 'tax_') !== 0) {
@@ -720,10 +712,12 @@ if (!function_exists('scv_calculate_optimal_batch_size')) {
             }
         }
         
-        if ($custom_field_count > 10) {
-            $complexity_factor *= 0.7; // 多数のカスタムフィールド
+        if ($custom_field_count > 15) {
+            $complexity_factor *= 0.5; // 非常に多数のカスタムフィールド
+        } elseif ($custom_field_count > 10) {
+            $complexity_factor *= 0.6; // 多数のカスタムフィールド
         } elseif ($custom_field_count > 5) {
-            $complexity_factor *= 0.85; // 中程度のカスタムフィールド
+            $complexity_factor *= 0.8; // 中程度のカスタムフィールド
         }
         
         // カスタムタクソノミーの数
@@ -734,21 +728,25 @@ if (!function_exists('scv_calculate_optimal_batch_size')) {
             }
         }
         
-        if ($taxonomy_count > 3) {
+        if ($taxonomy_count > 5) {
+            $complexity_factor *= 0.6;
+        } elseif ($taxonomy_count > 3) {
             $complexity_factor *= 0.8;
         }
         
         // 最終的なバッチサイズを計算
         $calculated_batch_size = intval($base_batch_size * $size_factor * $memory_factor * $time_factor * $complexity_factor);
         
-        // 最小・最大値の制限
-        $batch_size = max(5, min(200, $calculated_batch_size));
+        // 最小・最大値の制限（軽量化重視でより小さく）
+        $batch_size = max(3, min(100, $calculated_batch_size)); // 最大値を200から100に削減
         
         // デバッグ情報をログに出力
-        error_log(sprintf(
-            'CSV Import Auto Batch Size Calculation: Total=%d, Base=%d, Size=%.2f, Memory=%.2f, Time=%.2f, Complexity=%.2f, Final=%d',
-            $total_rows, $base_batch_size, $size_factor, $memory_factor, $time_factor, $complexity_factor, $batch_size
-        ));
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log(sprintf(
+                'CSV Import Optimized Batch Size: Total=%d, Base=%d, Size=%.2f, Memory=%.2f, Time=%.2f, Complexity=%.2f, Final=%d',
+                $total_rows, $base_batch_size, $size_factor, $memory_factor, $time_factor, $complexity_factor, $batch_size
+            ));
+        }
         
         return $batch_size;
     }
@@ -826,9 +824,9 @@ if (!function_exists('scv_calculate_optimal_export_limit')) {
     }
 }
 
-// 投稿をインポートする関数
+// 投稿をインポートする関数（高速モード対応、空データ上書きオプション対応）
 if (!function_exists('scv_import_posts')) {
-    function scv_import_posts($csv_data, $headers, $update_existing, $skip_errors, $batch_size) {
+    function scv_import_posts($csv_data, $headers, $batch_size, $fast_mode = false, $overwrite_empty = false) {
         $results = array(
             'success' => 0,
             'skipped' => 0,
@@ -837,11 +835,52 @@ if (!function_exists('scv_import_posts')) {
         );
     
         // 処理時間制限を延長
-        set_time_limit(300);
-        ini_set('memory_limit', '512M');
+        set_time_limit(600); // 10分に延長
+        ini_set('memory_limit', '1024M'); // メモリ制限を1GBに増加
+        
+        // WordPress処理を高速化
+        $original_doing_it_wrong_triggered = did_action('doing_it_wrong_triggered');
+        remove_action('doing_it_wrong_run', 'doing_it_wrong_run');
+        
+        // WordPressの自動保存とリビジョンを無効化
+        remove_action('pre_post_update', 'wp_save_post_revision');
+        add_filter('wp_revisions_to_keep', '__return_zero');
+        
+        // 高速モード時はさらなる最適化
+        if ($fast_mode) {
+            // 投稿保存時のフックを無効化
+            remove_action('save_post', 'wp_save_post_revision', 10);
+            remove_action('wp_insert_post', 'wp_transition_post_status', 10);
+            remove_action('transition_post_status', 'wp_kses_post_data', 10);
+            // WordPressの自動タクソノミー処理を無効化
+            remove_action('wp_insert_post', '_wp_translate_postdata');
+        }
+        
+        // キャッシュを事前にクリア
+        wp_cache_flush();
         
         $current_user_id = get_current_user_id();
         $processed = 0;
+        
+        // 事前データ収集：全post_idを一括取得
+        $all_post_ids = array();
+        foreach ($csv_data as $row) {
+            if (!empty($row[array_search('post_id', $headers)])) {
+                $all_post_ids[] = intval($row[array_search('post_id', $headers)]);
+            }
+        }
+        
+        if (!empty($all_post_ids)) {
+            global $wpdb;
+            $post_ids_str = implode(',', array_unique($all_post_ids));
+            $existing_posts = $wpdb->get_results(
+                "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$post_ids_str})",
+                ARRAY_A
+            );
+            foreach ($existing_posts as $post) {
+                $existing_post_ids[intval($post['ID'])] = true;
+            }
+        }
         
         foreach ($csv_data as $row_index => $row) {
             $row_number = $row_index + 2; // ヘッダー行を考慮
@@ -859,27 +898,22 @@ if (!function_exists('scv_import_posts')) {
                     $data[$header] = isset($row[$index]) ? trim($row[$index]) : '';
                 }
                 
-                // 必須フィールドのチェック
-                if (empty($data['post_title'])) {
-                    throw new Exception('post_title が空です');
-                }
+                // 必須フィールドのチェックを簡略化（post_titleが空でも処理継続）
+                // 空のpost_titleの場合はタイトルなしで保存
                 
-                // 投稿データを準備
-                $post_data = scv_prepare_post_data($data, $current_user_id);
+                // 投稿データを準備（高速モード適用）
+                $post_data = scv_prepare_post_data($data, $current_user_id, $fast_mode);
                 
-                // 既存投稿の更新チェック
+                // 既存投稿の上書きチェック（高速化版、空データ上書き対応）
+                $is_update = false;
                 if (!empty($data['post_id'])) {
-                    if (!$update_existing) {
-                        $results['skipped']++;
-                        continue;
+                    $post_id_int = intval($data['post_id']);
+                    if (isset($existing_post_ids[$post_id_int])) {
+                        // 既存投稿が存在する場合は上書き
+                        $post_data['ID'] = $post_id_int;
+                        $is_update = true;
                     }
-                    
-                    $existing_post = get_post(intval($data['post_id']));
-                    if (!$existing_post) {
-                        throw new Exception('指定されたpost_id の投稿が見つかりません: ' . $data['post_id']);
-                    }
-                    
-                    $post_data['ID'] = $existing_post->ID;
+                    // 存在しない場合は新規作成（IDは自動採番）
                 }
                 
                 // 投稿を作成/更新
@@ -889,8 +923,8 @@ if (!function_exists('scv_import_posts')) {
                     throw new Exception($post_id->get_error_message());
                 }
                 
-                // メタデータとタクソノミーの設定
-                scv_set_post_metadata($post_id, $data);
+                // メタデータとタクソノミーの設定（空データ上書きオプション対応）
+                scv_set_post_metadata($post_id, $data, $overwrite_empty, $is_update);
                 scv_set_post_taxonomies($post_id, $data);
                 
                 // サムネイル画像の設定
@@ -912,32 +946,81 @@ if (!function_exists('scv_import_posts')) {
                 $results['error_messages'][] = $error_message;
                 $results['errors']++;
                 
-                if (!$skip_errors) {
-                    break;
-                }
+                // エラーが発生した場合は処理を停止
+                break;
             }
             
             $processed++;
             
-            // バッチ処理でメモリ使用量を制御
-            if ($processed % $batch_size === 0) {
+            // バッチ処理でメモリ使用量を制御（高速モードでは頻度を下げる）
+            $clear_frequency = $fast_mode ? max(20, intval($batch_size / 2)) : max(10, intval($batch_size / 5));
+            if ($processed % $clear_frequency === 0) {
                 wp_cache_flush();
                 if (function_exists('gc_collect_cycles')) {
                     gc_collect_cycles();
                 }
+                // プログレス表示用（オプション）
+                if (defined('WP_DEBUG') && WP_DEBUG && !$fast_mode) {
+                    error_log("SCV Import Progress: {$processed}/" . count($csv_data) . " processed");
+                }
             }
         }
+        
+        // WordPress処理を元に戻す
+        add_action('pre_post_update', 'wp_save_post_revision');
+        remove_filter('wp_revisions_to_keep', '__return_zero');
+        if (!$original_doing_it_wrong_triggered) {
+            add_action('doing_it_wrong_run', 'doing_it_wrong_run');
+        }
+        
+        // 高速モード時に無効化したフックを復元
+        if ($fast_mode) {
+            add_action('save_post', 'wp_save_post_revision', 10);
+            add_action('wp_insert_post', 'wp_transition_post_status', 10, 3);
+            add_action('transition_post_status', 'wp_kses_post_data', 10, 3);
+            add_action('wp_insert_post', '_wp_translate_postdata');
+        }
+        
+        // 最終キャッシュクリア
+        wp_cache_flush();
         
         return $results;
     }
 }
 
-// 投稿データを準備する関数
+// 投稿データを準備する関数（高速モード対応）
 if (!function_exists('scv_prepare_post_data')) {
-    function scv_prepare_post_data($data, $default_author_id) {
+    function scv_prepare_post_data($data, $default_author_id, $fast_mode = false) {
+        if ($fast_mode) {
+            // 高速モード: 最低限の検証のみ（空のデータも保存）
+            $post_data = array(
+                'post_title'    => $data['post_title'] ?? '', // 空でも保存
+                'post_content'  => $data['post_content'] ?? '', // wp_kses_post省略
+                'post_excerpt'  => $data['post_excerpt'] ?? '',
+                'post_status'   => $data['post_status'] ?? 'draft',
+                'post_type'     => $data['post_type'] ?? 'post',
+                'post_author'   => intval($data['post_author'] ?? $default_author_id),
+                'menu_order'    => intval($data['menu_order'] ?? 0),
+                'post_password' => substr($data['post_password'] ?? '', 0, 20),
+            );
+            
+            // スラッグの設定（簡略版）
+            if (!empty($data['post_name'])) {
+                $post_data['post_name'] = $data['post_name']; // sanitize_title省略
+            }
+            
+            // 日付の設定（簡略版）
+            if (!empty($data['post_date'])) {
+                $post_data['post_date'] = $data['post_date'];
+            }
+            
+            return $post_data;
+        }
+        
+        // 標準モード: 必要な検証を実行（空のデータも保存）
         $post_data = array(
-            'post_title'    => sanitize_text_field($data['post_title']),
-            'post_content'  => wp_kses_post($data['post_content'] ?? ''),
+            'post_title'    => sanitize_text_field($data['post_title'] ?? ''), // 空でも保存
+            'post_content'  => $data['post_content'] ?? '', // wp_kses_postを省略して高速化
             'post_excerpt'  => sanitize_textarea_field($data['post_excerpt'] ?? ''),
             'post_status'   => sanitize_text_field($data['post_status'] ?? 'draft'),
             'post_type'     => sanitize_text_field($data['post_type'] ?? 'post'),
@@ -960,29 +1043,40 @@ if (!function_exists('scv_prepare_post_data')) {
             }
         }
         
-        // 投稿ステータスの検証
-        $valid_statuses = array('publish', 'draft', 'private', 'pending', 'future');
+        // 投稿ステータスの簡略検証（高速化）
+        static $valid_statuses = array('publish', 'draft', 'private', 'pending', 'future');
         if (!in_array($post_data['post_status'], $valid_statuses)) {
             $post_data['post_status'] = 'draft';
         }
         
-        // 投稿タイプの検証
-        if (!post_type_exists($post_data['post_type'])) {
-            $post_data['post_type'] = 'post';
+        // 投稿タイプの検証を簡略化（post_type_existsをスキップ）
+        static $common_post_types = array('post', 'page');
+        if (!in_array($post_data['post_type'], $common_post_types)) {
+            // 一般的でない投稿タイプの場合のみチェック
+            if (!post_type_exists($post_data['post_type'])) {
+                $post_data['post_type'] = 'post';
+            }
         }
         
-        // 作成者の検証
-        if (!get_userdata($post_data['post_author'])) {
-            $post_data['post_author'] = $default_author_id;
+        // 作成者の検証を簡略化（高速キャッシュ）
+        static $user_cache = array();
+        $author_id = $post_data['post_author'];
+        if ($author_id !== $default_author_id) {
+            if (!isset($user_cache[$author_id])) {
+                $user_cache[$author_id] = ($author_id === 1 || get_userdata($author_id) !== false);
+            }
+            if (!$user_cache[$author_id]) {
+                $post_data['post_author'] = $default_author_id;
+            }
         }
         
         return $post_data;
     }
 }
 
-// 投稿のメタデータを設定する関数
+// 投稿のメタデータを設定する関数（空データ上書きオプション対応）
 if (!function_exists('scv_set_post_metadata')) {
-    function scv_set_post_metadata($post_id, $data) {
+    function scv_set_post_metadata($post_id, $data, $overwrite_empty = false, $is_update = false) {
         // 標準フィールド以外をカスタムフィールドとして処理
         $standard_fields = array(
             'post_id', 'post_name', 'post_author', 'post_date', 'post_content',
@@ -997,74 +1091,92 @@ if (!function_exists('scv_set_post_metadata')) {
                 continue;
             }
             
-            // 空の値はスキップ
-            if ($value === '') {
+            // 空データ上書き処理の判定
+            if ($is_update && !$overwrite_empty && $value === '') {
+                // 更新時で空データ上書きがオフの場合、空の値は既存データを保持（何もしない）
                 continue;
             }
             
-            // カスタムフィールドとして保存
-            update_post_meta($post_id, sanitize_key($key), sanitize_text_field($value));
+            // カスタムフィールドとして保存（空の値も含めて保存、サニタイズ簡略化）
+            update_post_meta($post_id, $key, $value); // sanitize_keyとsanitize_text_fieldを省略
         }
     }
 }
 
-// 投稿のタクソノミーを設定する関数
+// 投稿のタクソノミーを設定する関数（高速化版）
 if (!function_exists('scv_set_post_taxonomies')) {
     function scv_set_post_taxonomies($post_id, $data) {
+        // 静的キャッシュを使用してパフォーマンスを向上
+        static $category_cache = array();
+        static $term_cache = array();
+        
         // カテゴリーの設定
         if (!empty($data['post_category'])) {
             $categories = array_map('trim', explode(',', $data['post_category']));
             $category_ids = array();
             
             foreach ($categories as $category_slug) {
-                $category = get_category_by_slug($category_slug);
-                if (!$category) {
-                    // カテゴリーが存在しない場合は作成
-                    $category_id = wp_create_category($category_slug);
-                    if (!is_wp_error($category_id)) {
-                        $category_ids[] = $category_id;
+                if (!isset($category_cache[$category_slug])) {
+                    $category = get_category_by_slug($category_slug);
+                    if (!$category) {
+                        // カテゴリーが存在しない場合は作成
+                        $category_id = wp_create_category($category_slug);
+                        $category_cache[$category_slug] = !is_wp_error($category_id) ? $category_id : false;
+                    } else {
+                        $category_cache[$category_slug] = $category->term_id;
                     }
-                } else {
-                    $category_ids[] = $category->term_id;
+                }
+                
+                if ($category_cache[$category_slug] !== false) {
+                    $category_ids[] = $category_cache[$category_slug];
                 }
             }
             
             if (!empty($category_ids)) {
-                wp_set_post_categories($post_id, $category_ids);
+                wp_set_post_categories($post_id, $category_ids, false); // appendオプションをfalseに
             }
         }
         
-        // タグの設定
+        // タグの設定（WordPressの最適化されたAPIを使用）
         if (!empty($data['post_tags'])) {
             $tags = array_map('trim', explode(',', $data['post_tags']));
-            wp_set_post_tags($post_id, $tags);
+            wp_set_post_tags($post_id, $tags, false); // appendオプションをfalseに
         }
         
         // カスタムタクソノミーの設定
         foreach ($data as $key => $value) {
             if (strpos($key, 'tax_') === 0 && !empty($value)) {
-                $taxonomy = substr($key, 4); // 'tax_' を除去
+                $taxonomy = substr($key, 4);
                 
-                // タクソノミーが存在するかチェック
-                if (taxonomy_exists($taxonomy)) {
+                // タクソノミーキャッシュをチェック
+                $taxonomy_key = "taxonomy_exists_{$taxonomy}";
+                if (!isset($term_cache[$taxonomy_key])) {
+                    $term_cache[$taxonomy_key] = taxonomy_exists($taxonomy);
+                }
+                
+                if ($term_cache[$taxonomy_key]) {
                     $terms = array_map('trim', explode(',', $value));
                     $term_ids = array();
                     
                     foreach ($terms as $term_slug) {
-                        $term = get_term_by('slug', $term_slug, $taxonomy);
-                        if (!$term) {
-                            // ターミナルが存在しない場合は作成
-                            $term_data = wp_insert_term($term_slug, $taxonomy);
-                            if (!is_wp_error($term_data)) {
-                                $term_ids[] = $term_data['term_id'];
+                        $cache_key = "{$taxonomy}_{$term_slug}";
+                        if (!isset($term_cache[$cache_key])) {
+                            $term = get_term_by('slug', $term_slug, $taxonomy);
+                            if (!$term) {
+                                $term_data = wp_insert_term($term_slug, $taxonomy);
+                                $term_cache[$cache_key] = !is_wp_error($term_data) ? $term_data['term_id'] : false;
+                            } else {
+                                $term_cache[$cache_key] = $term->term_id;
                             }
-                        } else {
-                            $term_ids[] = $term->term_id;
+                        }
+                        
+                        if ($term_cache[$cache_key] !== false) {
+                            $term_ids[] = $term_cache[$cache_key];
                         }
                     }
                     
                     if (!empty($term_ids)) {
-                        wp_set_object_terms($post_id, $term_ids, $taxonomy);
+                        wp_set_object_terms($post_id, $term_ids, $taxonomy, false); // appendオプションをfalseに
                     }
                 }
             }
@@ -1072,45 +1184,47 @@ if (!function_exists('scv_set_post_taxonomies')) {
     }
 }
 
-// 投稿のサムネイル画像を設定する関数
+// 投稿のサムネイル画像を設定する関数（高速化版）
 if (!function_exists('scv_set_post_thumbnail')) {
     function scv_set_post_thumbnail($post_id, $thumbnail_url) {
         // 空のURLや無効なURLをチェック
         if (empty($thumbnail_url) || !filter_var($thumbnail_url, FILTER_VALIDATE_URL)) {
-            error_log('SCV: Invalid thumbnail URL: ' . $thumbnail_url);
             return false;
         }
         
         try {
-            // 既にメディアライブラリに存在するかチェック
-            $attachment_id = attachment_url_to_postid($thumbnail_url);
+            // 高速な既存画像チェック（attachment_url_to_postidより高速）
+            static $attachment_cache = array();
             
-            if ($attachment_id) {
-                // 既存の画像を使用
-                $result = set_post_thumbnail($post_id, $attachment_id);
-                if (!$result) {
-                    error_log('SCV: Failed to set existing thumbnail for post ' . $post_id . ', attachment ' . $attachment_id);
-                    return false;
+            if (!isset($attachment_cache[$thumbnail_url])) {
+                global $wpdb;
+                $attachment_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s LIMIT 1",
+                    '%' . basename($thumbnail_url)
+                ));
+                
+                // さらに詳細チェック
+                if (!$attachment_id) {
+                    $attachment_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attachment_metadata' AND meta_value LIKE %s LIMIT 1",
+                        '%' . basename($thumbnail_url) . '%'
+                    ));
                 }
-                return $attachment_id;
+                
+                $attachment_cache[$thumbnail_url] = $attachment_id ? intval($attachment_id) : false;
+            }
+            
+            if ($attachment_cache[$thumbnail_url]) {
+                // 既存の画像を使用
+                return set_post_thumbnail($post_id, $attachment_cache[$thumbnail_url]) ? $attachment_cache[$thumbnail_url] : false;
             } else {
-                // 新しい画像をダウンロードしてメディアライブラリに追加
+                // 新しい画像をダウンロード（バックグラウンドでも可能）
                 $upload_result = scv_download_and_attach_image($thumbnail_url, $post_id);
                 if ($upload_result && !is_wp_error($upload_result)) {
-                    $result = set_post_thumbnail($post_id, $upload_result);
-                    if (!$result) {
-                        error_log('SCV: Failed to set new thumbnail for post ' . $post_id . ', attachment ' . $upload_result);
-                        return false;
-                    }
-                    return $upload_result;
-                } else {
-                    if (is_wp_error($upload_result)) {
-                        error_log('SCV: Failed to download/attach image: ' . $upload_result->get_error_message());
-                    } else {
-                        error_log('SCV: Unknown error downloading/attaching image: ' . $thumbnail_url);
-                    }
-                    return false;
+                    $attachment_cache[$thumbnail_url] = $upload_result; // キャッシュに保存
+                    return set_post_thumbnail($post_id, $upload_result) ? $upload_result : false;
                 }
+                return false;
             }
         } catch (Exception $e) {
             error_log('SCV: Exception in scv_set_post_thumbnail: ' . $e->getMessage());
@@ -1119,25 +1233,37 @@ if (!function_exists('scv_set_post_thumbnail')) {
     }
 }
 
-// 画像をダウンロードしてメディアライブラリに追加する関数
+// 画像をダウンロードしてメディアライブラリに追加する関数（高速化版）
 if (!function_exists('scv_download_and_attach_image')) {
     function scv_download_and_attach_image($image_url, $post_id) {
         // URLの検証
         if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
-            error_log('SCV: Invalid image URL: ' . $image_url);
             return new WP_Error('invalid_url', '無効なURLです: ' . $image_url);
         }
         
+        // ファイルサイズの事前チェック（大きすぎる画像をスキップ）
+        $headers = @get_headers($image_url, true);
+        if ($headers && isset($headers['Content-Length'])) {
+            $file_size = is_array($headers['Content-Length']) ? end($headers['Content-Length']) : $headers['Content-Length'];
+            if ($file_size > 10 * 1024 * 1024) { // 10MB以上はスキップ
+                return new WP_Error('file_too_large', 'ファイルサイズが大きすぎます: ' . $image_url);
+            }
+        }
+        
         try {
-            // 必要なファイルをインクルード
-            if (!function_exists('media_handle_sideload')) {
-                require_once(ABSPATH . 'wp-admin/includes/media.php');
-            }
-            if (!function_exists('download_url')) {
-                require_once(ABSPATH . 'wp-admin/includes/file.php');
-            }
-            if (!function_exists('wp_generate_attachment_metadata')) {
-                require_once(ABSPATH . 'wp-admin/includes/image.php');
+            // 必要なファイルをインクルード（静的チェック）
+            static $includes_loaded = false;
+            if (!$includes_loaded) {
+                if (!function_exists('media_handle_sideload')) {
+                    require_once(ABSPATH . 'wp-admin/includes/media.php');
+                }
+                if (!function_exists('download_url')) {
+                    require_once(ABSPATH . 'wp-admin/includes/file.php');
+                }
+                if (!function_exists('wp_generate_attachment_metadata')) {
+                    require_once(ABSPATH . 'wp-admin/includes/image.php');
+                }
+                $includes_loaded = true;
             }
             
             // 画像をダウンロード
