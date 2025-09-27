@@ -1676,7 +1676,11 @@ if (!function_exists('scv_process_csv_test')) {
         
         if (!in_array($file_type['type'], $allowed_types) && $file_type['ext'] !== 'csv') {
             add_action('admin_notices', function() use ($file_type) {
-                echo '<div class="notice notice-error"><p>許可されていないファイルタイプです：' . esc_html($file_type['type']) . '</p></div>';
+                $error_message = '許可されていないファイルタイプです';
+                if (!empty($file_type['type'])) {
+                    $error_message .= '：' . esc_html($file_type['type']);
+                }
+                echo '<div class="notice notice-error"><p>' . $error_message . '</p></div>';
             });
             return;
         }
