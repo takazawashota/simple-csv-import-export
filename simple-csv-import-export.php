@@ -133,15 +133,16 @@ if (!function_exists('scv_admin_page')) {
             .nav-tab:focus {
                 outline: none;
                 box-shadow: none;
+                border-bottom: none;
             }
             .nav-tab:hover {
                 background-color: #fff;
                 color: #646970;
+                border-bottom: none;
             }
             .nav-tab-active,
             .nav-tab-active:hover {
                 background: #fff!important;
-                border-bottom: 1px solid #fff;
                 color: #000;
             }
             
