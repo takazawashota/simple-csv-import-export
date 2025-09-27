@@ -4,6 +4,8 @@ WordPressの投稿、固定ページ、カスタム投稿タイプを CSV ファ
 
 # 公式マニュアル
 
+Simple CSV Import Exportに関連する情報を詳しく知りたい方は、以下のURLから公式マニュアルをご確認ください。
+
 https://sokulabo.com/plugin/simple-csv-import-export/
 
 ## 機能
