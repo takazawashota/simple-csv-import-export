@@ -648,180 +648,18 @@ if (!function_exists('scv_read_csv_file')) {
     }
 }
 
-// 最適なバッチサイズを自動計算する関数（軽量化版）
+// インポート時のバッチサイズを設定する関数
 if (!function_exists('scv_calculate_optimal_batch_size')) {
     function scv_calculate_optimal_batch_size($csv_data, $headers) {
-        $total_rows = count($csv_data);
-        
-        // 基本バッチサイズを軽量化に最適化（小さく設定）
-        $base_batch_size = 20; // 50から20に削減
-    
-        // データ量に基づく調整（より軽量化重視）
-        if ($total_rows <= 50) {
-            $size_factor = 1.5; // 小規模: 少し上げる
-        } elseif ($total_rows <= 200) {
-            $size_factor = 1.0; // 中小規模: そのまま
-        } elseif ($total_rows <= 500) {
-            $size_factor = 0.7; // 中規模: 下げる
-        } elseif ($total_rows <= 1000) {
-            $size_factor = 0.5; // 大規模: 大幅に下げる
-        } else {
-            $size_factor = 0.3; // 超大規模: 大幅に下げる
-        }
-        
-        // サーバー環境に基づく調整（軽量化重視）
-        $memory_limit = ini_get('memory_limit');
-        $memory_in_mb = intval($memory_limit);
-        
-        if ($memory_in_mb >= 1024) {
-            $memory_factor = 1.3; // 高メモリ: 上げる
-        } elseif ($memory_in_mb >= 512) {
-            $memory_factor = 1.0; // 標準メモリ: そのまま
-        } elseif ($memory_in_mb >= 256) {
-            $memory_factor = 0.8; // 低メモリ: 下げる
-        } else {
-            $memory_factor = 0.5; // 非常に低メモリ: 大幅に下げる
-        }
-        
-        // 実行時間制限に基づく調整
-        $max_execution_time = ini_get('max_execution_time');
-        if ($max_execution_time == 0) {
-            $time_factor = 1.5; // 無制限: 上げる
-        } elseif ($max_execution_time >= 300) {
-            $time_factor = 1.2; // 長時間: 少し上げる
-        } elseif ($max_execution_time >= 120) {
-            $time_factor = 1.0; // 標準: そのまま
-        } elseif ($max_execution_time >= 60) {
-            $time_factor = 0.8; // 短時間: 下げる
-        } else {
-            $time_factor = 0.4; // 非常に短時間: 大幅に下げる
-        }
-        
-        // 複雑度に基づく調整（画像やカスタムフィールドの有無）
-        $complexity_factor = 1.0;
-        
-        // 画像フィールドがある場合（処理が重い）
-        if (in_array('post_thumbnail', $headers)) {
-            $complexity_factor *= 0.3; // 画像処理は非常に重いのでさらに下げる
-        }
-        
-        // カスタムフィールドの数（より厳しく制限）
-        $custom_field_count = 0;
-        foreach ($headers as $header) {
-            if (!in_array($header, array('post_id', 'post_name', 'post_author', 'post_date', 'post_content', 'post_title', 'post_excerpt', 'post_status', 'post_password', 'menu_order', 'post_type', 'post_thumbnail', 'post_category', 'post_tags')) && strpos($header, 'tax_') !== 0) {
-                $custom_field_count++;
-            }
-        }
-        
-        if ($custom_field_count > 15) {
-            $complexity_factor *= 0.5; // 非常に多数のカスタムフィールド
-        } elseif ($custom_field_count > 10) {
-            $complexity_factor *= 0.6; // 多数のカスタムフィールド
-        } elseif ($custom_field_count > 5) {
-            $complexity_factor *= 0.8; // 中程度のカスタムフィールド
-        }
-        
-        // カスタムタクソノミーの数
-        $taxonomy_count = 0;
-        foreach ($headers as $header) {
-            if (strpos($header, 'tax_') === 0) {
-                $taxonomy_count++;
-            }
-        }
-        
-        if ($taxonomy_count > 5) {
-            $complexity_factor *= 0.6;
-        } elseif ($taxonomy_count > 3) {
-            $complexity_factor *= 0.8;
-        }
-        
-        // 最終的なバッチサイズを計算
-        $calculated_batch_size = intval($base_batch_size * $size_factor * $memory_factor * $time_factor * $complexity_factor);
-        
-        // 最小・最大値の制限（軽量化重視でより小さく）
-        $batch_size = max(3, min(100, $calculated_batch_size)); // 最大値を200から100に削減
-        
-        // デバッグ情報をログに出力
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log(sprintf(
-                'CSV Import Optimized Batch Size: Total=%d, Base=%d, Size=%.2f, Memory=%.2f, Time=%.2f, Complexity=%.2f, Final=%d',
-                $total_rows, $base_batch_size, $size_factor, $memory_factor, $time_factor, $complexity_factor, $batch_size
-            ));
-        }
-        
-        return $batch_size;
+        return 999999; // 一度に処理する行数を固定
     }
 }
 
-// 最適なエクスポート制限を自動計算する関数
+// エクスポートの制限値を設定する関数
 if (!function_exists('scv_calculate_optimal_export_limit')) {
     function scv_calculate_optimal_export_limit($post_type, $post_status) {
-        // 基本制限数を設定
-        $base_limit = 1000;
-    
-        // サーバー環境に基づく調整
-        $memory_limit = ini_get('memory_limit');
-        $memory_in_mb = intval($memory_limit);
-        
-        if ($memory_in_mb >= 512) {
-            $memory_factor = 2.0; // 高メモリ: 大幅に上げる
-        } elseif ($memory_in_mb >= 256) {
-            $memory_factor = 1.5; // 標準メモリ: 上げる
-        } elseif ($memory_in_mb >= 128) {
-            $memory_factor = 1.0; // 低メモリ: そのまま
-        } else {
-            $memory_factor = 0.5; // 非常に低メモリ: 下げる
-        }
-        
-        // 実行時間制限に基づく調整
-        $max_execution_time = ini_get('max_execution_time');
-        if ($max_execution_time == 0) {
-            $time_factor = 2.0; // 無制限: 大幅に上げる
-        } elseif ($max_execution_time >= 300) {
-            $time_factor = 1.5; // 長時間: 上げる
-        } elseif ($max_execution_time >= 60) {
-            $time_factor = 1.0; // 標準: そのまま
-        } else {
-            $time_factor = 0.3; // 短時間: 大幅に下げる
-        }
-        
-        // 投稿タイプに基づく調整
-        $type_factor = 1.0;
-        if ($post_type === 'all' || $post_type === 'any') {
-            $type_factor = 0.7; // 全投稿タイプは重いので下げる
-        }
-        
-        // データベースサイズの推定による調整
-        $total_posts = wp_count_posts();
-        $total_count = 0;
-        if (is_object($total_posts)) {
-            foreach ($total_posts as $status => $count) {
-                $total_count += $count;
-            }
-        }
-        
-        $size_factor = 1.0;
-        if ($total_count > 10000) {
-            $size_factor = 0.5; // 大規模サイト: 下げる
-        } elseif ($total_count > 5000) {
-            $size_factor = 0.7; // 中規模サイト: 少し下げる
-        } elseif ($total_count > 1000) {
-            $size_factor = 0.9; // やや大きいサイト: わずかに下げる
-        }
-        
-        // 最終的なエクスポート制限を計算
-        $calculated_limit = intval($base_limit * $memory_factor * $time_factor * $type_factor * $size_factor);
-        
-        // 最小・最大値の制限
-        $export_limit = max(100, min(10000, $calculated_limit));
-        
-        // デバッグ情報をログに出力
-        error_log(sprintf(
-            'CSV Export Auto Limit Calculation: Base=%d, Memory=%.2f, Time=%.2f, Type=%.2f, Size=%.2f, Final=%d',
-            $base_limit, $memory_factor, $time_factor, $type_factor, $size_factor, $export_limit
-        ));
-        
-        return $export_limit;
+        // 固定の制限値を返す
+        return 999999;
     }
 }
 
