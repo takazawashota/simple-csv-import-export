@@ -60,7 +60,7 @@ A sample CSV file is also available for download.
 
 = Links =
 
-* [Official Website](https://sokulabo.com/plugin/simple-csv-import-export/)
+* [Official Website](https://sokulabo.com/products/simple-csv-import-export/)
 
 == Installation ==
 
