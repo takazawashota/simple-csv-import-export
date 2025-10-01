@@ -555,7 +555,7 @@ if (!function_exists('scv_process_csv_import')) {
         $headers = array_map('trim', $headers);
         
         // バッチサイズを自動計算
-        $batch_size = scv_calculate_optimal_batch_size($csv_data, $headers);
+        $batch_size = scv_calculate_optimal_batch_size();
         
         // 必須フィールドのチェック（post_titleの必須チェックを削除）
         // 空のpost_titleでもインポートを継続する
@@ -650,16 +650,15 @@ if (!function_exists('scv_read_csv_file')) {
 
 // インポート時のバッチサイズを設定する関数
 if (!function_exists('scv_calculate_optimal_batch_size')) {
-    function scv_calculate_optimal_batch_size($csv_data, $headers) {
-        return 999999; // 一度に処理する行数を固定
+    function scv_calculate_optimal_batch_size() {
+        return apply_filters('scv_import_batch_size', 999999);
     }
 }
 
 // エクスポートの制限値を設定する関数
 if (!function_exists('scv_calculate_optimal_export_limit')) {
-    function scv_calculate_optimal_export_limit($post_type, $post_status) {
-        // 固定の制限値を返す
-        return 999999;
+    function scv_calculate_optimal_export_limit() {
+        return apply_filters('scv_export_limit', 999999);
     }
 }
 
@@ -673,9 +672,13 @@ if (!function_exists('scv_import_posts')) {
             'error_messages' => array()
         );
     
-        // 処理時間制限を延長
-        set_time_limit(600); // 10分に延長
-        ini_set('memory_limit', '1024M'); // メモリ制限を1GBに増加
+        // 処理時間制限を延長（フィルターフックで調整可能）
+        $time_limit = apply_filters('scv_import_time_limit', 600); // デフォルト10分
+        set_time_limit($time_limit);
+
+        // メモリ制限を設定（フィルターフックで調整可能）
+        $memory_limit = apply_filters('scv_import_memory_limit', '1024M'); // デフォルト1GB
+        ini_set('memory_limit', $memory_limit);
         
         // WordPress処理を高速化
         $original_doing_it_wrong_triggered = did_action('doing_it_wrong_triggered');
@@ -1176,7 +1179,7 @@ if (!function_exists('scv_process_csv_export')) {
         $post_status = sanitize_text_field($_POST['export_status']);
         
         // 自動制限を計算
-        $auto_limit = scv_calculate_optimal_export_limit($post_type, $post_status);
+        $auto_limit = scv_calculate_optimal_export_limit();
         
         // クエリ引数を設定
         $args = array(
