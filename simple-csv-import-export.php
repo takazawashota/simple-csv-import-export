@@ -767,14 +767,17 @@ if (!function_exists('scv_import_posts')) {
                 scv_set_post_taxonomies($post_id, $data);
                 
                 // サムネイル画像の設定
-                if (!empty($data['post_thumbnail'])) {
-                    try {
-                        $thumbnail_result = scv_set_post_thumbnail($post_id, $data['post_thumbnail']);
-                        if ($thumbnail_result === false) {
-                            $results['error_messages'][] = "行 {$row_number}: サムネイル画像の設定に失敗しました: " . $data['post_thumbnail'];
+                if (isset($data['post_thumbnail'])) {
+                    if (!empty($data['post_thumbnail'])) {
+                        try {
+                            // 既存のサムネイルがあっても上書きする
+                            scv_set_post_thumbnail($post_id, $data['post_thumbnail']);
+                        } catch (Exception $e) {
+                            $results['error_messages'][] = "行 {$row_number}: サムネイル画像処理エラー: " . $e->getMessage();
                         }
-                    } catch (Exception $e) {
-                        $results['error_messages'][] = "行 {$row_number}: サムネイル画像処理エラー: " . $e->getMessage();
+                    } else {
+                        // post_thumbnailが空欄の場合、サムネイルを削除
+                        delete_post_thumbnail($post_id);
                     }
                 }
                 
