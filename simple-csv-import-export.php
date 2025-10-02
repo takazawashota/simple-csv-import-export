@@ -209,7 +209,7 @@ if (!function_exists('scv_admin_page')) {
         <div class="nav-tab-wrapper">
             <a href="#tab-import" class="nav-tab nav-tab-active scv-tab-link" data-tab="import">インポート</a>
             <a href="#tab-export" class="nav-tab scv-tab-link" data-tab="export">エクスポート</a>
-            <a href="#tab-format" class="nav-tab scv-tab-link" data-tab="format">CSVフォーマット仕様</a>
+            <a href="#tab-format" class="nav-tab scv-tab-link" data-tab="format">CSVフォーマット・仕様</a>
             <a href="#tab-test" class="nav-tab scv-tab-link" data-tab="test">CSVテスト</a>
             <a href="#tab-manual" class="nav-tab scv-tab-link" data-tab="manual">マニュアル</a>
         </div>
@@ -318,7 +318,7 @@ if (!function_exists('scv_admin_page')) {
                 </div>
             </div>
             
-            <!-- CSVフォーマット仕様タブ -->
+            <!-- CSVフォーマット・仕様タブ -->
             <div id="tab-format" class="scv-tab-content">
                 <p>以下のフォーマットでCSVファイルを作成してください。以下の必要なデータ名を、1行目にヘッダー行として記述してください。</p>
                 
@@ -428,6 +428,35 @@ if (!function_exists('scv_admin_page')) {
                 <pre style="background: #f5f5f5; padding: 10px; border: 1px solid #ddd; overflow-x: auto; font-size: 11px;">post_id,post_title,post_content,post_status,post_type,post_category,post_tags
 ,サンプル記事1,"&lt;p&gt;これは最初の記事です。&lt;/p&gt;",publish,post,sample-category,tag1
 ,サンプル記事2,"&lt;p&gt;これは2番目の記事です。&lt;/p&gt;",draft,post,"category1,category2","tag1,tag2"</pre>
+
+                <h4 style="margin-top: 30px;">PHP設定情報（php.ini）</h4>
+                <?php
+                // 設定値の表示
+                $batch_size = scv_calculate_optimal_batch_size();
+                
+                // サーバーの実際の設定値を取得
+                $memory_limit = ini_get('memory_limit');
+                $upload_max_filesize = ini_get('upload_max_filesize');
+                $post_max_size = ini_get('post_max_size');
+                
+                // 人間が読みやすい形式に変換する関数
+                function format_bytes($size) {
+                    if (preg_match('/^(\d+)(K|M|G)?$/i', $size, $matches)) {
+                        $num = $matches[1];
+                        $unit = isset($matches[2]) ? strtoupper($matches[2]) : '';
+                        return $num . $unit . ($unit ? 'B' : 'B');
+                    }
+                    return $size;
+                }
+                ?>
+                <div style="margin-top: 10px; padding: 15px; background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 4px;">
+                    <ul style="margin: 0; list-style-type: none;">
+                        <li>バッチサイズ: <?php echo number_format($batch_size); ?></li>
+                        <li>メモリ制限: <?php echo format_bytes($memory_limit); ?></li>
+                        <li>最大アップロードサイズ: <?php echo format_bytes($upload_max_filesize); ?></li>
+                        <li>最大POSTサイズ: <?php echo format_bytes($post_max_size); ?></li>
+                    </ul>
+                </div>
             </div>
 
             <!-- マニュアルタブ -->
@@ -563,15 +592,14 @@ if (!function_exists('scv_process_csv_import')) {
         $results = scv_import_posts($csv_data, $headers, $batch_size, true);
         
         // 結果の表示
-        add_action('admin_notices', function() use ($results, $batch_size) {
+        add_action('admin_notices', function() use ($results) {
             $class = $results['errors'] > 0 ? 'notice-warning' : 'notice-success';
             echo '<div class="notice ' . $class . '"><p>';
             echo sprintf(
-                'インポート完了: 成功 %d件, スキップ %d件, エラー %d件 (バッチサイズ: %d)',
+                'インポート完了: 成功 %d件, スキップ %d件, エラー %d件',
                 $results['success'],
                 $results['skipped'],
                 $results['errors'],
-                $batch_size
             );
             if (!empty($results['error_messages'])) {
                 echo '<br><strong>エラー詳細:</strong><br>' . implode('<br>', array_slice($results['error_messages'], 0, 10));
