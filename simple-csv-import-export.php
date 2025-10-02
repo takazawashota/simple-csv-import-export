@@ -465,10 +465,8 @@ if (!function_exists('scv_admin_page')) {
 
             <!-- マニュアルタブ -->
             <div id="tab-manual" class="scv-tab-content">
-                <h3>Simple CSV Import Export プラグインマニュアル</h3>
-                <div class="scv-notice">
-                    <strong>重要：</strong>このプラグインを使用する前に、以下のマニュアルをお読みください。
-                </div>
+                <h3>プラグインマニュアル</h3>
+                <p>このプラグインを使用する前に、以下のマニュアルをお読みください。</p>
                 <p><a href="https://sokulabo.com/products/simple-csv-import-export/" target="_blank">https://sokulabo.com/products/simple-csv-import-export/</a></p>
 
                 <h3>不具合報告</h3>
