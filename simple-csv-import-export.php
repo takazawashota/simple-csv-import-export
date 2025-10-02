@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Simple CSV Import Export
- * Description: CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート/エクスポートできるプラグインです。WordPress標準のインポートツールとして統合されます。
+ * Description: CSVファイルを使用して投稿、固定ページ、カスタム投稿タイプを一括インポート・エクスポートできるプラグインです。WordPress標準のインポートツールとして統合されます。
  * Version: 1.0.0
  * Author: Shota Takazawa
  * Author URI: https://sokulabo.com/products/simple-csv-import-export/
