@@ -340,7 +340,7 @@ if (!function_exists('scv_admin_page')) {
                         <tr>
                             <td>post_content</td>
                             <td>記事の本文（HTMLタグ使用可能）</td>
-                            <td>&lt;p&gt;記事の本文です。&lt;/p&gt;</td>
+                            <td>&lt;!-- wp:paragraph --&gt;&lt;p&gt;記事の本文です。&lt;/p&gt;&lt;!-- /wp:paragraph --&gt;</td>
                         </tr>
                         <tr>
                             <td>post_title</td>
@@ -1408,7 +1408,9 @@ if (!function_exists('scv_download_sample_csv')) {
             // サンプルデータ1（新規投稿）
             array(
                 '', 'sample-post-1', '1', '2024-01-15 10:00:00',
-                '<p>これは最初のサンプル記事です。<strong>HTMLタグ</strong>も使用できます。</p><p>複数の段落を含むことができます。</p>',
+                '<!-- wp:paragraph -->
+<p>記事の本文です。</p>
+<!-- /wp:paragraph -->',
                 'サンプル記事1', 'これは記事の抜粋文です。',
                 'publish', '', '0', 'post',
                 'https://example.com/images/sample1.jpg',
@@ -1418,7 +1420,9 @@ if (!function_exists('scv_download_sample_csv')) {
             // サンプルデータ2（下書き投稿）
             array(
                 '', 'sample-post-2', '1', '2024-01-16 14:30:00',
-                '<p>これは2番目のサンプル記事です。</p><ul><li>リスト項目1</li><li>リスト項目2</li></ul>',
+                '<!-- wp:paragraph -->
+<p>記事の本文です。</p>
+<!-- /wp:paragraph -->',
                 'サンプル記事2', '下書きの記事例です。',
                 'draft', '', '1', 'post',
                 'https://example.com/images/sample2.jpg',
@@ -1428,7 +1432,9 @@ if (!function_exists('scv_download_sample_csv')) {
             // サンプルデータ3（固定ページ）
             array(
                 '', 'about-us', '1', '2024-01-17 09:15:00',
-                '<p>私たちについてのページです。</p><p>企業情報や沿革などを記載します。</p>',
+                '<!-- wp:paragraph -->
+<p>記事の本文です。</p>
+<!-- /wp:paragraph -->',
                 '私たちについて', '企業情報ページ',
                 'publish', '', '0', 'page',
                 '',
@@ -1438,7 +1444,9 @@ if (!function_exists('scv_download_sample_csv')) {
             // サンプルデータ4（更新例 - 既存のpost_idを指定）
             array(
                 '123', 'updated-post', '1', '2024-01-18 16:45:00',
-                '<p>既存の投稿を更新する例です。post_idを指定することで既存記事を更新できます。</p>',
+                '<!-- wp:paragraph -->
+<p>記事の本文です。</p>
+<!-- /wp:paragraph -->',
                 '更新されたサンプル記事', '更新された抜粋文',
                 'publish', '', '2', 'post',
                 'https://example.com/images/updated.jpg',
@@ -1448,7 +1456,9 @@ if (!function_exists('scv_download_sample_csv')) {
             // サンプルデータ5（パスワード付き投稿）
             array(
                 '', 'private-post', '1', '2024-01-19 11:20:00',
-                '<p>パスワードで保護された記事の例です。</p>',
+                '<!-- wp:paragraph -->
+<p>記事の本文です。</p>
+<!-- /wp:paragraph -->',
                 'プライベート記事', 'パスワード保護されています。',
                 'publish', 'secret123', '0', 'post',
                 '',
