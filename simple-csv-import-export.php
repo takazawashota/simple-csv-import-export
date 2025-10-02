@@ -451,7 +451,7 @@ if (!function_exists('scv_admin_page')) {
                 <p>このプラグインを使用する前に、以下のマニュアルをお読みください。</p>
                 <p><a href="https://sokulabo.com/products/simple-csv-import-export/" target="_blank">https://sokulabo.com/products/simple-csv-import-export/</a></p>
 
-                <h3>不具合報告</h3>
+                <h3 style="margin-top: 35px;">不具合報告</h3>
                 <p>お手数ですが、もし等プラグインで不具合が見られましたら、以下のお問い合わせフォームからご報告ください。</p>
                 <p><a href="https://sokulabo.com/contact/" target="_blank">https://sokulabo.com/contact/</a></p>
             </div>
