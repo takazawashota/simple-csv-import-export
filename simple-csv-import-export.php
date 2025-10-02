@@ -98,7 +98,8 @@ if (!function_exists('scv_admin_page')) {
     ?>
     <div class="wrap">
         <h1>Simple CSV Import Export</h1>
-        <p>CSVファイルを使用して、WordPressの投稿、固定ページ、カスタム投稿タイプを一括でインポート・エクスポートできます。</p>
+        <p style="margin-bottom: 5px;">CSVファイルを使用して、WordPressの投稿、固定ページ、カスタム投稿タイプを一括でインポート・エクスポートできます。</p>
+        <p style="margin-top: 5px;">インポート・エクスポートする前に、必ずサイトのバックアップを取得していただくことを強く推奨いたします。</p>
         
         <!-- CSS スタイル -->
         <style>
@@ -144,6 +145,9 @@ if (!function_exists('scv_admin_page')) {
             .nav-tab-active:hover {
                 background: #fff!important;
                 color: #000;
+            }
+            .nav-tab:active {
+                border-bottom: none!important;
             }
             
             /* タブコンテンツ */
@@ -461,13 +465,15 @@ if (!function_exists('scv_admin_page')) {
 
             <!-- マニュアルタブ -->
             <div id="tab-manual" class="scv-tab-content">
-                <h3>Simple CSV Import Export プラグイン マニュアル</h3>
-                
+                <h3>Simple CSV Import Export プラグインマニュアル</h3>
                 <div class="scv-notice">
-                    <strong>重要:</strong> このプラグインを使用する前に、以下のマニュアルをお読みください。
+                    <strong>重要：</strong>このプラグインを使用する前に、以下のマニュアルをお読みください。
                 </div>
-
                 <p><a href="https://sokulabo.com/products/simple-csv-import-export/" target="_blank">https://sokulabo.com/products/simple-csv-import-export/</a></p>
+
+                <h3>不具合報告</h3>
+                <p>お手数ですが、もし等プラグインで不具合が見られましたら、以下のお問い合わせフォームからご報告ください。</p>
+                <p><a href="https://sokulabo.com/contact/" target="_blank">https://sokulabo.com/contact/</a></p>
             </div>
             
             <!-- JavaScript for Tab Functionality -->
