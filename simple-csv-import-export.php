@@ -223,16 +223,16 @@ if (!function_exists('scv_admin_page')) {
                         <label for="csv_file" class="scv-form-label">CSVファイルを選択:</label>
                         <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
                     </div>
-                    
-                    <div class="scv-form-group">
-                        <label>
-                            <input type="checkbox" name="overwrite_empty" value="1">
-                            CSVの空セルで既存データを上書き（post_idが同一の場合のみ有効）
-                        </label>
-                        <p style="font-size: 12px; color: #666; margin: 5px 0 0 20px;">チェックすると、CSVの空セルが既存の投稿データを空で上書してデータを削除します。チェックしない場合、空セルは既存データを保持します。</p>
+
+                    <div class="" style="">
+                        <p style="margin: 0;"><strong>インポート時の動作について</strong></p>
+                        <ul style="margin: 10px 0 0 0">
+                            <li>新規投稿の場合（post_idが未記入の場合）：CSVの内容がそのまま反映されます。</li>
+                            <li>既存投稿の更新の場合（post_idが同一の場合）：CSVに記載されている項目は、空セルも含めて完全に上書きされます。空のセルがある場合、その項目の既存データは削除されます。</li>
+                        </ul>
                     </div>
                     
-                    <button type="submit" name="import_csv" class="button button-primary">CSVをインポート</button>
+                    <button type="submit" name="import_csv" class="button button-primary" style="margin-top: 15px;">CSVをインポート</button>
                 </form>
             </div>
 
@@ -512,7 +512,6 @@ if (!function_exists('scv_process_csv_import')) {
         }
         
         $uploaded_file = $_FILES['csv_file'];
-        $overwrite_empty = isset($_POST['overwrite_empty']); // 空データ上書きオプション
         
         // バッチサイズを自動計算（後で決定）
         $batch_size = 0;
@@ -560,8 +559,8 @@ if (!function_exists('scv_process_csv_import')) {
         // 必須フィールドのチェック（post_titleの必須チェックを削除）
         // 空のpost_titleでもインポートを継続する
         
-        // インポート処理の実行（高速モード有効、空データ上書きオプション対応）
-        $results = scv_import_posts($csv_data, $headers, $batch_size, true, $overwrite_empty); // 第5パラメータで空データ上書きオプションを渡す
+        // インポート処理の実行（高速モード有効）
+        $results = scv_import_posts($csv_data, $headers, $batch_size, true);
         
         // 結果の表示
         add_action('admin_notices', function() use ($results, $batch_size) {
@@ -662,9 +661,9 @@ if (!function_exists('scv_calculate_optimal_export_limit')) {
     }
 }
 
-// 投稿をインポートする関数（高速モード対応、空データ上書きオプション対応）
+// 投稿をインポートする関数（高速モード対応）
 if (!function_exists('scv_import_posts')) {
-    function scv_import_posts($csv_data, $headers, $batch_size, $fast_mode = false, $overwrite_empty = false) {
+    function scv_import_posts($csv_data, $headers, $batch_size, $fast_mode = false) {
         $results = array(
             'success' => 0,
             'skipped' => 0,
@@ -746,14 +745,12 @@ if (!function_exists('scv_import_posts')) {
                 // 投稿データを準備（高速モード適用）
                 $post_data = scv_prepare_post_data($data, $current_user_id, $fast_mode);
                 
-                // 既存投稿の上書きチェック（高速化版、空データ上書き対応）
-                $is_update = false;
+                // 既存投稿の上書きチェック
                 if (!empty($data['post_id'])) {
                     $post_id_int = intval($data['post_id']);
                     if (isset($existing_post_ids[$post_id_int])) {
                         // 既存投稿が存在する場合は上書き
                         $post_data['ID'] = $post_id_int;
-                        $is_update = true;
                     }
                     // 存在しない場合は新規作成（IDは自動採番）
                 }
@@ -765,8 +762,8 @@ if (!function_exists('scv_import_posts')) {
                     throw new Exception($post_id->get_error_message());
                 }
                 
-                // メタデータとタクソノミーの設定（空データ上書きオプション対応）
-                scv_set_post_metadata($post_id, $data, $overwrite_empty, $is_update);
+                // メタデータとタクソノミーの設定
+                scv_set_post_metadata($post_id, $data);
                 scv_set_post_taxonomies($post_id, $data);
                 
                 // サムネイル画像の設定
@@ -916,9 +913,9 @@ if (!function_exists('scv_prepare_post_data')) {
     }
 }
 
-// 投稿のメタデータを設定する関数（空データ上書きオプション対応）
+// 投稿のメタデータを設定する関数
 if (!function_exists('scv_set_post_metadata')) {
-    function scv_set_post_metadata($post_id, $data, $overwrite_empty = false, $is_update = false) {
+    function scv_set_post_metadata($post_id, $data) {
         // 標準フィールド以外をカスタムフィールドとして処理
         $standard_fields = array(
             'post_id', 'post_name', 'post_author', 'post_date', 'post_content',
@@ -933,13 +930,7 @@ if (!function_exists('scv_set_post_metadata')) {
                 continue;
             }
             
-            // 空データ上書き処理の判定
-            if ($is_update && !$overwrite_empty && $value === '') {
-                // 更新時で空データ上書きがオフの場合、空の値は既存データを保持（何もしない）
-                continue;
-            }
-            
-            // カスタムフィールドとして保存（空の値も含めて保存、サニタイズ簡略化）
+            // カスタムフィールドとして保存（サニタイズ簡略化）
             update_post_meta($post_id, $key, $value); // sanitize_keyとsanitize_text_fieldを省略
         }
     }
