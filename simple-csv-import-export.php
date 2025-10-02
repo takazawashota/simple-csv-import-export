@@ -189,24 +189,6 @@ if (!function_exists('scv_admin_page')) {
             .scv-format-table tr:nth-child(even) {
                 background-color: #f9f9f9;
             }
-            .scv-notice {
-                background: #fff3cd;
-                border: 1px solid #ffeaa7;
-                border-radius: 4px;
-                padding: 12px;
-                margin-bottom: 15px;
-                color: #856404;
-            }
-            .scv-success {
-                background: #d4edda;
-                border: 1px solid #c3e6cb;
-                color: #155724;
-            }
-            .scv-error {
-                background: #f8d7da;
-                border: 1px solid #f5c6cb;
-                color: #721c24;
-            }
         </style>
 
         <!-- タブナビゲーション -->
